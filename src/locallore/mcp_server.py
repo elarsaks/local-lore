@@ -4,6 +4,7 @@ import logging
 
 from mcp.server.fastmcp import FastMCP
 
+from .config import Settings
 from .status import Status, get_status
 
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +18,7 @@ mcp = FastMCP(
 @mcp.tool()
 def locallore_status() -> Status:
     """Report LocalLore index and offline-runtime status."""
-    return get_status()
+    return get_status(Settings.from_env().database_path)
 
 
 def run_server() -> None:

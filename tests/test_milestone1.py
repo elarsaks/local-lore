@@ -30,7 +30,7 @@ def test_mcp_registers_only_status_tool() -> None:
 def test_status_reports_expected_empty_index() -> None:
     status = locallore_status()
 
-    assert status["schema_version"] == 0
+    assert status["schema_version"] == 1
     assert status["sessions"] == 0
     assert status["messages"] == 0
     assert status["import_errors"] == []
