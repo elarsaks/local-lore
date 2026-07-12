@@ -1,0 +1,3 @@
+{"type":"assistant","sessionId":"old-migration","uuid":"old-migration-answer","timestamp":"2025-12-15T10:00:00Z","project":"alpha","message":{"role":"assistant","content":"The legacy migration recreated the schema from scratch."}}
+{"type":"user","sessionId":"new-migration","uuid":"migration-question","timestamp":"2026-02-10T10:00:00Z","project":"alpha","message":{"role":"user","content":"How should the schema migration work now?"}}
+{"type":"assistant","sessionId":"new-migration","uuid":"migration-answer","timestamp":"2026-02-10T10:01:00Z","project":"alpha","message":{"role":"assistant","content":"Make every schema migration incremental and idempotent."}}

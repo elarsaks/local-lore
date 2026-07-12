@@ -1,0 +1,4 @@
+{"type":"user","sessionId":"alpha-session","uuid":"alpha-question","timestamp":"2026-01-10T10:00:00Z","project":"alpha","message":{"role":"user","content":"Why should we remove the HTTP transport?"}}
+{"type":"assistant","sessionId":"alpha-session","uuid":"alpha-answer","timestamp":"2026-01-10T10:01:00Z","project":"alpha","message":{"role":"assistant","content":"Remove the HTTP transport so the runtime remains offline and has one local stdio boundary."}}
+{"type":"user","sessionId":"alpha-session","uuid":"alpha-followup","timestamp":"2026-01-10T10:02:00Z","project":"alpha","message":{"role":"user","content":"Document that offline decision in the runtime guide."}}
+{"type":"assistant","sessionId":"alpha-session","uuid":"compose-edit","timestamp":"2026-01-10T10:03:00Z","project":"alpha","message":{"role":"assistant","content":[{"type":"text","text":"Set the Compose network mode to none."},{"type":"tool_use","name":"Edit","input":{"file_path":"compose.yaml"}}]}}
