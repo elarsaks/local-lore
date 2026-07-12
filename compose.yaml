@@ -5,6 +5,9 @@ services:
     network_mode: none
     stdin_open: true
     read_only: true
+    user: "65532:65532"
+    init: true
+    pids_limit: 128
     cap_drop:
       - ALL
     security_opt:
@@ -16,6 +19,7 @@ services:
       LOCALLORE_MODEL_PATH: /models
       LOCALLORE_EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
       LOCALLORE_EMBEDDING_DIMENSION: "384"
+      LOCALLORE_NETWORK_MODE: none
     volumes:
       - type: bind
         source: ${CLAUDE_PROJECTS_DIR}
@@ -25,7 +29,7 @@ services:
         source: locallore-data
         target: /data
     tmpfs:
-      - /tmp:size=256m,uid=65532,gid=65532
+      - /tmp:size=256m,uid=65532,gid=65532,noexec,nosuid,nodev
     command: ["mcp"]
 
 volumes:
