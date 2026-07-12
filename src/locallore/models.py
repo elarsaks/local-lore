@@ -13,3 +13,4 @@ class ParsedMessage:
     text: str
     cwd: str | None
     project: str | None
+    file_operations: tuple[tuple[str, str], ...] = ()

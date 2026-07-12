@@ -24,13 +24,17 @@ def test_plugin_manifest_has_expected_identity_and_author() -> None:
 def test_mcp_exposes_the_status_tool() -> None:
     tools = asyncio.run(mcp.list_tools())
 
-    assert [tool.name for tool in tools] == ["locallore_status"]
+    assert [tool.name for tool in tools] == [
+        "locallore_status",
+        "locallore_search",
+        "locallore_context",
+    ]
 
 
 def test_status_reports_an_empty_index_before_import() -> None:
     status = locallore_status()
 
-    assert status["schema_version"] == 1
+    assert status["schema_version"] == 2
     assert status["sessions"] == 0
     assert status["messages"] == 0
     assert status["import_errors"] == []

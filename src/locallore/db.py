@@ -4,7 +4,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def connect(path: Path) -> sqlite3.Connection:

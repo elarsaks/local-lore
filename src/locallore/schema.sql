@@ -33,3 +33,37 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS messages_session_id ON messages(session_id);
+
+CREATE TABLE IF NOT EXISTS file_operations (
+    id INTEGER PRIMARY KEY,
+    message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    path TEXT NOT NULL,
+    operation TEXT NOT NULL,
+    UNIQUE(message_id, path, operation)
+);
+
+CREATE INDEX IF NOT EXISTS file_operations_path ON file_operations(path);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+    text,
+    content='messages',
+    content_rowid='rowid',
+    tokenize='unicode61'
+);
+
+CREATE TRIGGER IF NOT EXISTS messages_fts_insert AFTER INSERT ON messages BEGIN
+    INSERT INTO messages_fts(rowid, text) VALUES (new.rowid, new.text);
+END;
+
+CREATE TRIGGER IF NOT EXISTS messages_fts_delete AFTER DELETE ON messages BEGIN
+    INSERT INTO messages_fts(messages_fts, rowid, text)
+    VALUES ('delete', old.rowid, old.text);
+END;
+
+CREATE TRIGGER IF NOT EXISTS messages_fts_update AFTER UPDATE OF text ON messages BEGIN
+    INSERT INTO messages_fts(messages_fts, rowid, text)
+    VALUES ('delete', old.rowid, old.text);
+    INSERT INTO messages_fts(rowid, text) VALUES (new.rowid, new.text);
+END;
+
+INSERT INTO messages_fts(messages_fts) VALUES ('rebuild');

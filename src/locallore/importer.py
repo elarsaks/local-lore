@@ -97,6 +97,11 @@ def _import_file(connection: sqlite3.Connection, source: SourceFile) -> tuple[in
                     ),
                 )
                 added += cursor.rowcount
+                for path, operation in parsed.file_operations:
+                    connection.execute(
+                        "INSERT OR IGNORE INTO file_operations(message_id, path, operation) VALUES (?, ?, ?)",
+                        (parsed.message_id, path, operation),
+                    )
             final_offset = handle.tell()
         error_text = f"{errors} malformed record(s)" if errors else None
         connection.execute(

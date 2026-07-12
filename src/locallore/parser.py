@@ -8,6 +8,28 @@ from typing import Any
 from .models import ParsedMessage
 
 
+_FILE_KEYS = ("file_path", "path", "filename")
+
+
+def _file_operations(content: Any) -> tuple[tuple[str, str], ...]:
+    if not isinstance(content, list):
+        return ()
+    operations: list[tuple[str, str]] = []
+    for block in content:
+        if not isinstance(block, dict) or block.get("type") != "tool_use":
+            continue
+        tool_input = block.get("input")
+        if not isinstance(tool_input, dict):
+            continue
+        name = str(block.get("name", "unknown")).lower()
+        for key in _FILE_KEYS:
+            path = tool_input.get(key)
+            if isinstance(path, str) and path:
+                operations.append((path, name))
+                break
+    return tuple(operations)
+
+
 def _text(content: Any) -> str:
     if isinstance(content, str):
         return content
@@ -40,7 +62,8 @@ def parse_record(payload: object, source: Path, line: int) -> ParsedMessage | No
     session_id = payload.get("sessionId") or payload.get("session_id")
     if not isinstance(session_id, str) or not session_id:
         session_id = source.stem
-    text = _text(message.get("content"))
+    content = message.get("content")
+    text = _text(content)
     if not text:
         return None
     raw_id = message.get("id") or payload.get("uuid")
@@ -57,6 +80,7 @@ def parse_record(payload: object, source: Path, line: int) -> ParsedMessage | No
         text=text,
         cwd=cwd if isinstance(cwd, str) else None,
         project=project if isinstance(project, str) else None,
+        file_operations=_file_operations(content),
     )
 
 
