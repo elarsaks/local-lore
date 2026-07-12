@@ -1,0 +1,54 @@
+name: LocalLore checks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests and configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install locked development dependencies
+        run: uv sync --locked --dev
+
+      - name: Run unit tests
+        run: uv run pytest -q
+
+      - name: Validate plugin manifest
+        run: |
+          uv run python -m json.tool .claude-plugin/plugin.json >/dev/null
+          uv run python -c '
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path(".claude-plugin/plugin.json").read_text())
+          assert manifest["name"] == "locallore"
+          assert manifest["version"] == "0.1.0"
+          assert manifest["author"]["name"] == "Elar Saks"
+          '
+
+      - name: Validate Compose configuration
+        env:
+          CLAUDE_PROJECTS_DIR: /tmp
+        run: docker compose config --quiet
+
+      - name: Build offline runtime image
+        run: docker build --tag locallore-ci .
