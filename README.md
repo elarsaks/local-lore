@@ -2,13 +2,13 @@
 
 LocalLore is an offline memory layer for Claude Code. It will index local Claude Code session history and make past work searchable through the `/remember` command.
 
-## Milestone 3
+## Milestone 4
 
 LocalLore incrementally indexes normalized session and message data in SQLite.
-SQLite FTS5 provides keyword retrieval through `locallore_search`, while
-`locallore_context` retrieves a bounded window around selected evidence. Search
-supports project, date, role, and file filters. Semantic embeddings are planned
-for Milestone 4.
+SQLite FTS5 and a local ONNX sentence-embedding model provide hybrid retrieval
+through `locallore_search`, while `locallore_context` retrieves a bounded window
+around selected evidence. Search supports project, date, role, and file filters.
+Keyword and semantic rankings are combined with reciprocal rank fusion.
 
 ## Requirements
 
@@ -37,7 +37,9 @@ available tools are `locallore_status`, `locallore_search`, and
 from indexed sessions.
 
 The container is configured with `network_mode: none`, mounts session files
-read-only, and stores its SQLite index in the named `locallore-data` volume.
+read-only, and stores its SQLite index in the named `locallore-data` volume. The
+embedding model is downloaded into the image during the build and is loaded with
+runtime downloads disabled.
 
 ## Direct MCP smoke test
 
@@ -65,9 +67,9 @@ Run the deterministic eval checks with the rest of the test suite:
 uv run pytest
 ```
 
-The cases live in `evals/remember.yaml`. Future retrieval milestones can execute
-the same cases against indexed fixtures while keeping these expected behaviors
-stable.
+The cases live in `evals/remember.yaml` and `evals/retrieval.yaml`. The retrieval
+evals are deterministic and make no model API calls; local ONNX inference does
+not consume API tokens.
 
 ## Privacy
 

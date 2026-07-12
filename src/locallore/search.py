@@ -4,9 +4,14 @@ import re
 import sqlite3
 from typing import TypedDict
 
+import numpy as np
+
+from .embeddings import Embedder, decode_vector
+
 MAX_RESULTS = 25
 MAX_CONTEXT = 10
 EXCERPT_LENGTH = 500
+RRF_K = 60
 
 
 class SearchResult(TypedDict):
@@ -32,22 +37,16 @@ def _fts_query(query: str) -> str:
     return " OR ".join(f'"{term}"' for term in terms[:32])
 
 
-def search_messages(
-    connection: sqlite3.Connection,
-    query: str,
+def _filters(
     *,
-    project: str | None = None,
-    after: str | None = None,
-    before: str | None = None,
-    role: str | None = None,
-    files: list[str] | None = None,
-    limit: int = 8,
-) -> SearchResponse:
-    if role is not None and role not in {"user", "assistant", "tool"}:
-        raise ValueError("role must be user, assistant, or tool")
-    limit = max(1, min(limit, MAX_RESULTS))
-    clauses = ["messages_fts MATCH ?"]
-    parameters: list[object] = [_fts_query(query)]
+    project: str | None,
+    after: str | None,
+    before: str | None,
+    role: str | None,
+    files: list[str] | None,
+) -> tuple[list[str], list[object]]:
+    clauses: list[str] = []
+    parameters: list[object] = []
     for sql, value in (
         ("s.project = ?", project),
         ("m.timestamp >= ?", after),
@@ -63,19 +62,120 @@ def search_messages(
             "WHERE f.message_id = m.id AND f.path = ?)"
         )
         parameters.append(path)
-    parameters.append(limit * 4)
+    return clauses, parameters
+
+
+def _keyword_ranking(
+    connection: sqlite3.Connection,
+    query: str,
+    filters: list[str],
+    parameters: list[object],
+    candidate_limit: int,
+) -> list[str]:
+    try:
+        fts_query = _fts_query(query)
+    except ValueError:
+        return []
+    clauses = ["messages_fts MATCH ?", *filters]
     rows = connection.execute(
-        "SELECT m.id, m.session_id, s.project, m.timestamp, m.role, m.text, "
-        "bm25(messages_fts) AS rank "
-        "FROM messages_fts JOIN messages m ON m.rowid = messages_fts.rowid "
+        "SELECT m.id FROM messages_fts "
+        "JOIN messages m ON m.rowid = messages_fts.rowid "
         "JOIN sessions s ON s.id = m.session_id WHERE "
         + " AND ".join(clauses)
-        + " ORDER BY rank, m.timestamp DESC LIMIT ?",
-        parameters,
+        + " ORDER BY bm25(messages_fts), m.timestamp DESC LIMIT ?",
+        [fts_query, *parameters, candidate_limit],
     ).fetchall()
+    return [row["id"] for row in rows]
+
+
+def _semantic_ranking(
+    connection: sqlite3.Connection,
+    query: str,
+    embedder: Embedder,
+    filters: list[str],
+    parameters: list[object],
+    candidate_limit: int,
+) -> list[str]:
+    rows = connection.execute(
+        "SELECT m.id, e.vector FROM embeddings e "
+        "JOIN messages m ON m.id = e.message_id "
+        "JOIN sessions s ON s.id = m.session_id "
+        "WHERE e.model_id = ? AND e.dimension = ?"
+        + (" AND " + " AND ".join(filters) if filters else ""),
+        [embedder.model_id, embedder.dimension, *parameters],
+    ).fetchall()
+    if not rows:
+        return []
+    query_vector = np.asarray(embedder.encode_query(query), dtype=np.float32)
+    norm = np.linalg.norm(query_vector)
+    if norm == 0:
+        raise ValueError("query embedding has zero length")
+    query_vector /= norm
+    matrix = np.vstack(
+        [decode_vector(row["vector"], embedder.dimension) for row in rows]
+    )
+    scores = matrix @ query_vector
+    best = np.argsort(-scores, kind="stable")[:candidate_limit]
+    return [rows[index]["id"] for index in best]
+
+
+def _fuse_rankings(*rankings: list[str]) -> list[tuple[str, float]]:
+    scores: dict[str, float] = {}
+    for ranking in rankings:
+        for rank, message_id in enumerate(ranking, start=1):
+            scores[message_id] = scores.get(message_id, 0.0) + 1.0 / (RRF_K + rank)
+    return sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+
+
+def search_messages(
+    connection: sqlite3.Connection,
+    query: str,
+    *,
+    embedder: Embedder | None = None,
+    project: str | None = None,
+    after: str | None = None,
+    before: str | None = None,
+    role: str | None = None,
+    files: list[str] | None = None,
+    limit: int = 8,
+) -> SearchResponse:
+    if role is not None and role not in {"user", "assistant", "tool"}:
+        raise ValueError("role must be user, assistant, or tool")
+    limit = max(1, min(limit, MAX_RESULTS))
+    if not query.strip():
+        raise ValueError("query must not be empty")
+    if embedder is None and not re.search(r"\w+", query, flags=re.UNICODE):
+        raise ValueError("query must contain at least one searchable term")
+    filters, parameters = _filters(
+        project=project, after=after, before=before, role=role, files=files
+    )
+    candidate_limit = limit * 4
+    keyword_ranking = _keyword_ranking(
+        connection, query, filters, parameters, candidate_limit
+    )
+    semantic_ranking = (
+        _semantic_ranking(
+            connection, query, embedder, filters, parameters, candidate_limit
+        )
+        if embedder is not None
+        else []
+    )
+    fused = _fuse_rankings(keyword_ranking, semantic_ranking)
+    if not fused:
+        rows = []
+    else:
+        placeholders = ",".join("?" for _ in fused)
+        fetched = connection.execute(
+            "SELECT m.id, m.session_id, s.project, m.timestamp, m.role, m.text "
+            "FROM messages m JOIN sessions s ON s.id = m.session_id "
+            f"WHERE m.id IN ({placeholders})",
+            [message_id for message_id, _ in fused],
+        ).fetchall()
+        by_id = {row["id"]: row for row in fetched}
+        rows = [(by_id[message_id], score) for message_id, score in fused]
     results: list[SearchResult] = []
     seen_text: set[str] = set()
-    for row in rows:
+    for row, score in rows:
         normalized_text = " ".join(row["text"].split()).casefold()
         if normalized_text in seen_text:
             continue
@@ -94,7 +194,7 @@ def search_messages(
                 "project": row["project"],
                 "timestamp": row["timestamp"],
                 "role": row["role"],
-                "score": round(1.0 / (1.0 + abs(row["rank"])), 6),
+                "score": round(score, 6),
                 "excerpt": row["text"][:EXCERPT_LENGTH],
                 "files": paths,
             }

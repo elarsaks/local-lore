@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 
 from mcp.server.fastmcp import FastMCP
 
 from .config import Settings
 from .db import connect
+from .embeddings import FastEmbedder
 from .search import get_context, search_messages
 from .status import Status, get_status
 
@@ -15,6 +17,16 @@ mcp = FastMCP(
     "LocalLore",
     instructions="Offline memory for local Claude Code sessions.",
 )
+
+
+@lru_cache(maxsize=1)
+def _embedder() -> FastEmbedder:
+    settings = Settings.from_env()
+    return FastEmbedder(
+        settings.embedding_model,
+        settings.model_path,
+        settings.embedding_dimension,
+    )
 
 
 @mcp.tool()
@@ -38,6 +50,7 @@ def locallore_search(
         return search_messages(
             connection,
             query,
+            embedder=_embedder(),
             project=project,
             after=after,
             before=before,

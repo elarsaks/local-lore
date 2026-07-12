@@ -111,3 +111,26 @@ jobs:
         uses: actions/checkout@v4
       - name: Build offline runtime image
         run: docker build --tag locallore-ci .
+      - name: Embed fixtures without runtime networking
+        run: |
+          docker volume create locallore-ci-data
+          docker run --rm --network none --read-only \
+            --tmpfs /tmp:size=256m,uid=65532,gid=65532 \
+            --mount type=bind,source="$GITHUB_WORKSPACE/evals/fixtures/keyword-sessions",target=/sessions,readonly \
+            --mount type=volume,source=locallore-ci-data,target=/data \
+            locallore-ci index
+      - name: Verify semantic paraphrase retrieval offline
+        run: |
+          docker run --rm --network none --read-only \
+            --tmpfs /tmp:size=256m,uid=65532,gid=65532 \
+            --mount type=volume,source=locallore-ci-data,target=/data \
+            --entrypoint /app/.venv/bin/python locallore-ci -c '
+          from pathlib import Path
+          from locallore.db import connect
+          from locallore.embeddings import FastEmbedder
+          from locallore.search import search_messages
+          connection = connect(Path("/data/locallore.db"))
+          embedder = FastEmbedder("BAAI/bge-small-en-v1.5", Path("/models"), 384)
+          results = search_messages(connection, "Why eliminate the web API?", embedder=embedder)["results"]
+          assert results[0]["message_id"] == "alpha-question", results
+          '
