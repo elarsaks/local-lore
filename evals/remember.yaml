@@ -1,0 +1,78 @@
+version: 1
+name: remember_contract
+description: Product-level contract cases for LocalLore memory retrieval.
+cases:
+  - id: prior_fix_current_project
+    prompt: How did we fix the flaky login test before?
+    expected:
+      initial_query: How did we fix the flaky login test before?
+      prefer_current_project: true
+      filters: {}
+      behaviors:
+        - search_before_answering
+        - synthesize_evidence
+        - cite_useful_provenance
+        - distinguish_inference
+
+  - id: named_project_design_change
+    prompt: Why did we remove the HTTP MCP server from Flex?
+    expected:
+      initial_query: Why did we remove the HTTP MCP server from Flex?
+      prefer_current_project: false
+      filters:
+        project: Flex
+      behaviors:
+        - search_before_answering
+        - synthesize_evidence
+        - cite_useful_provenance
+        - distinguish_inference
+
+  - id: date_filter
+    prompt: What did I work on last week in this repository?
+    expected:
+      initial_query: What did I work on last week in this repository?
+      prefer_current_project: true
+      filters:
+        date: last week
+      behaviors:
+        - search_before_answering
+        - synthesize_evidence
+        - cite_useful_provenance
+
+  - id: file_filter
+    prompt: What changes did we discuss for src/auth/session.py?
+    expected:
+      initial_query: What changes did we discuss for src/auth/session.py?
+      prefer_current_project: true
+      filters:
+        file: src/auth/session.py
+      behaviors:
+        - search_before_answering
+        - synthesize_evidence
+        - cite_useful_provenance
+        - distinguish_inference
+
+  - id: insufficient_initial_evidence
+    prompt: Find the session where we discussed the migration and explain the decision.
+    expected:
+      initial_query: Find the session where we discussed the migration and explain the decision.
+      prefer_current_project: true
+      filters: {}
+      behaviors:
+        - search_before_answering
+        - fetch_context_if_needed
+        - synthesize_evidence
+        - cite_useful_provenance
+        - distinguish_inference
+
+  - id: no_reliable_memory
+    prompt: Why did we choose the Zanzibar authorization model?
+    expected:
+      initial_query: Why did we choose the Zanzibar authorization model?
+      prefer_current_project: true
+      filters: {}
+      behaviors:
+        - search_before_answering
+        - report_no_reliable_memory
+        - do_not_invent_evidence
+
