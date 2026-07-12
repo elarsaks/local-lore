@@ -1,0 +1,54 @@
+version: 1
+name: keyword_retrieval
+description: Deterministic, offline FTS retrieval quality cases with no model calls.
+cases:
+  - id: exact_design_decision_ranks_first
+    query: HTTP transport offline
+    expected:
+      top_message: alpha-answer
+      relevant_messages: [alpha-answer]
+
+  - id: project_filter_excludes_other_project
+    query: HTTP transport
+    filters:
+      project: alpha
+    expected:
+      top_message: alpha-question
+      relevant_messages: [alpha-answer, alpha-question]
+      excluded_messages: [beta-answer]
+
+  - id: date_and_role_filters
+    query: migration schema
+    filters:
+      after: "2026-02-01"
+      before: "2026-03-01"
+      role: assistant
+    expected:
+      top_message: migration-answer
+      relevant_messages: [migration-answer]
+      excluded_messages: [old-migration-answer]
+
+  - id: structured_file_filter
+    query: compose network
+    filters:
+      files: [compose.yaml]
+    expected:
+      top_message: compose-edit
+      relevant_messages: [compose-edit]
+
+  - id: no_reliable_keyword_evidence
+    query: Zanzibar authorization
+    expected:
+      relevant_messages: []
+
+  - id: context_around_design_decision
+    query: HTTP transport offline
+    expected:
+      top_message: alpha-answer
+      relevant_messages: [alpha-answer]
+      context:
+        session_id: alpha-session
+        message_id: alpha-answer
+        before: 1
+        after: 1
+        message_ids: [alpha-question, alpha-answer, alpha-followup]

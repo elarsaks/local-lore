@@ -9,6 +9,25 @@ permissions:
   contents: read
 
 jobs:
+  retrieval-evals:
+    name: Deterministic retrieval evals
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked development dependencies
+        run: uv sync --locked --dev
+      - name: Run offline keyword retrieval evals
+        run: uv run pytest -q tests/test_retrieval_evals.py
+
   evaluation-contract:
     name: Evaluation contract
     runs-on: ubuntu-latest
