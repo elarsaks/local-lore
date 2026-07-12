@@ -1,80 +1,136 @@
 # LocalLore
 
-LocalLore is an offline memory layer for Claude Code. It will index local Claude Code session history and make past work searchable through the `/remember` command.
-
-## Milestone 4
-
-LocalLore incrementally indexes normalized session and message data in SQLite.
-SQLite FTS5 and a local ONNX sentence-embedding model provide hybrid retrieval
-through `locallore_search`, while `locallore_context` retrieves a bounded window
-around selected evidence. Search supports project, date, role, and file filters.
-Keyword and semantic rankings are combined with reciprocal rank fusion.
+LocalLore is an offline memory layer for Claude Code. It incrementally indexes
+local Claude Code session history and retrieves past work through `/remember`.
+SQLite FTS5 and an image-bundled sentence-embedding model provide hybrid search;
+the runtime container has no network interface.
 
 ## Requirements
 
-- Claude Code
-- Docker Desktop with Docker Compose
+- Claude Code with plugin support
+- Docker Desktop or Docker Engine with Docker Compose v2
 - A local Claude projects directory (normally `~/.claude/projects`)
 
-## Try it locally
+The first image build needs internet access to download pinned Python packages
+and the embedding model. Runtime use, indexing, diagnostics, and search are
+offline.
 
-Validate the plugin and build the image:
+## Install
+
+Clone this repository, validate it, build the image, and run the diagnostic:
 
 ```bash
 claude plugin validate .
 CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/build.sh
+CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/doctor.sh
 ```
 
-Load the plugin for a Claude Code session:
+Then load the checkout for a Claude Code session:
 
 ```bash
 claude --plugin-dir .
 ```
 
-Run `/mcp` in Claude Code to confirm that the LocalLore server is connected. The
-available tools are `locallore_status`, `locallore_search`, and
-`locallore_context`. Use `/remember <question>` to search and synthesize evidence
-from indexed sessions.
+Run `/mcp` to confirm that `locallore` is connected, then ask
+`/remember <question>`. The MCP server exposes only `locallore_status`,
+`locallore_search`, and `locallore_context`.
 
-The container is configured with `network_mode: none`, mounts session files
-read-only, and stores its SQLite index in the named `locallore-data` volume. The
-embedding model is downloaded into the image during the build and is loaded with
-runtime downloads disabled.
+## Operations
 
-## Direct MCP smoke test
+Indexing happens automatically before MCP startup. To refresh explicitly:
 
 ```bash
-printf '%s\n' \
-'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}' \
-'{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}' \
-'{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
-'{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"locallore_status","arguments":{}}}' \
-| CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" docker compose run --rm -T locallore mcp
+CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/index.sh
 ```
 
-The status response reports the indexed session and message counts, last refresh,
-and any import errors.
+The importer is incremental and safe to rerun. It rebuilds only a source file
+that was replaced or truncated. Malformed complete JSONL records are skipped,
+reported with their path and line number on stderr, and exposed by
+`locallore_status`; incomplete trailing records wait for the next refresh.
 
-## Evals
+`./scripts/doctor.sh` verifies that the session mount is readable, the database
+volume is writable, migrations and FTS5 work, foreign keys are enabled, local
+model assets can run inference, and Compose supplied the offline-runtime marker.
+It exits nonzero with an actionable error when a check fails.
 
-The eval suite defines the product contract for `/remember`. It covers query
-fidelity, project/date/file filters, contextual follow-up, evidence synthesis,
-provenance, and honest no-result behavior.
+## Upgrade
 
-Run the deterministic eval checks with the rest of the test suite:
+Pull the desired release and rebuild while online:
+
+```bash
+git pull --ff-only
+CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/build.sh
+CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/doctor.sh
+```
+
+The named `locallore-data` volume is retained and database migrations run at
+startup. Back up that volume before downgrading; older releases are not promised
+to understand newer schemas.
+
+## Privacy and security
+
+- Docker disables runtime networking with `network_mode: none`.
+- Session history is bind-mounted read-only; LocalLore never edits it.
+- The container filesystem is read-only, all Linux capabilities are dropped,
+  privilege escalation is disabled, processes are limited, and the container
+  runs as unprivileged UID/GID 65532.
+- Only the SQLite index persists in the `locallore-data` Docker volume.
+- There is no telemetry, crash reporting, remote model fallback, or API call.
+- Search inputs and outputs are bounded and arbitrary SQL is not exposed.
+
+The index contains plaintext copies and embeddings of private conversation data.
+Anyone who can access the Docker volume can read it. LocalLore 0.1 does not
+provide encryption at rest; rely on host disk encryption and OS access controls.
+
+## Delete all indexed data
+
+Find the Compose project and remove its volume (this is irreversible):
+
+```bash
+docker compose -f compose.yaml down
+docker volume ls --filter name=locallore-data
+docker volume rm local-lore_locallore-data
+```
+
+Compose derives the prefix from the checkout directory, so use the exact volume
+name printed by `docker volume ls`. This removes only LocalLore's derived index,
+not Claude session files. The next launch creates and rebuilds an empty index.
+
+## Troubleshooting
+
+- **Docker command not found or daemon unavailable:** install/start Docker, then
+  confirm `docker compose version` succeeds.
+- **Session directory does not exist:** set `CLAUDE_PROJECTS_DIR` to the directory
+  containing Claude project session JSONL files.
+- **MCP disconnects during startup:** run `./scripts/doctor.sh`; diagnostics stay
+  on stderr so stdout remains valid MCP JSON-RPC.
+- **Embedding assets missing:** rebuild the image while online. Runtime downloads
+  are deliberately disabled.
+- **Old or missing results:** run `./scripts/index.sh`, then inspect
+  `locallore_status` for file-level import errors.
+- **Permission denied for the volume:** ensure Docker can create/write its named
+  volume; LocalLore intentionally runs as UID 65532.
+- **Build works but offline runtime does not:** use the supplied Compose launchers.
+  Directly running the image bypasses the enforced network and mount settings.
+
+## Validation and performance
+
+Run all deterministic unit, database, ingestion, keyword, semantic, MCP,
+security, doctor, and evaluation-contract tests:
 
 ```bash
 uv run pytest
 ```
 
-The cases live in `evals/remember.yaml` and `evals/retrieval.yaml`. The retrieval
-evals are deterministic and make no model API calls; local ONNX inference does
-not consume API tokens.
+The performance regression test measures hybrid search over 2,000 local vectors
+and guards both peak Python allocation and elapsed search time with deliberately
+generous CI thresholds. This provides a repeatable signal before considering a
+SQLite vector extension. The production model smoke test is performed by
+`doctor` inside the offline container.
 
-## Privacy
+For a direct MCP protocol smoke test, see [the build specification](LOCALLORE_BUILD_SPEC.md#13-mcp-server).
 
-Runtime networking is disabled by Docker. Local session files are never edited or uploaded. The SQLite index will live in the Docker volume, so anyone with access to that volume can read indexed session content.
+## Design
 
-## Development milestones
-
-See [LOCALLORE_BUILD_SPEC.md](LOCALLORE_BUILD_SPEC.md) for the planned ingestion, keyword search, semantic search, and hardening milestones.
+See [LOCALLORE_BUILD_SPEC.md](LOCALLORE_BUILD_SPEC.md) for the architecture,
+security model, test requirements, and milestones.

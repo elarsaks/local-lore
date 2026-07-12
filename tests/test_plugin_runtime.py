@@ -48,12 +48,18 @@ def test_compose_disables_network_and_protects_sessions() -> None:
     assert service["network_mode"] == "none"
     assert service["read_only"] is True
     assert "ALL" in service["cap_drop"]
+    assert service["user"] == "65532:65532"
+    assert service["init"] is True
+    assert service["pids_limit"] == 128
+    assert "no-new-privileges:true" in service["security_opt"]
     sessions_mount = next(
         mount for mount in service["volumes"] if mount["target"] == "/sessions"
     )
     assert sessions_mount["read_only"] is True
     assert service["environment"]["LOCALLORE_MODEL_PATH"] == "/models"
     assert service["environment"]["LOCALLORE_EMBEDDING_DIMENSION"] == "384"
+    assert service["environment"]["LOCALLORE_NETWORK_MODE"] == "none"
+    assert "noexec" in service["tmpfs"][0]
 
 
 def test_launcher_scripts_are_executable_and_use_strict_mode() -> None:
