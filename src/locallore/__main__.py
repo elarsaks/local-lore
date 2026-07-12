@@ -3,21 +3,40 @@ from __future__ import annotations
 import argparse
 import sys
 
+from .config import Settings
+from .db import connect, migrate
+from .importer import import_sessions
 from .mcp_server import run_server
 from .status import get_status
+
+
+def index(settings: Settings) -> None:
+    connection = connect(settings.database_path)
+    try:
+        migrate(connection)
+        result = import_sessions(connection, settings.sessions_path)
+        print(
+            f"Indexed {result.messages_added} messages "
+            f"from {result.files_changed} changed files",
+            file=sys.stderr,
+        )
+    finally:
+        connection.close()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="locallore")
     parser.add_argument("command", choices=("mcp", "index", "doctor"))
     args = parser.parse_args()
+    settings = Settings.from_env()
 
     if args.command == "mcp":
+        index(settings)
         run_server()
     elif args.command == "index":
-        print("Milestone 1: no index is configured yet", file=sys.stderr)
+        index(settings)
     else:
-        status = get_status()
+        status = get_status(settings.database_path)
         print(f"LocalLore ready (schema version {status['schema_version']})", file=sys.stderr)
 
 

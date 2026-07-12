@@ -1,0 +1,4 @@
+{"type":"user","sessionId":"session-1","uuid":"message-1","timestamp":"2026-01-01T10:00:00Z","cwd":"/work/example","project":"example","message":{"role":"user","content":"How should we migrate the database?"}}
+{"type":"assistant","sessionId":"session-1","uuid":"message-2","timestamp":"2026-01-01T10:01:00Z","message":{"role":"assistant","content":[{"type":"text","text":"Use an idempotent schema migration."}]}}
+{"not":"a message LocalLore understands"}
+not-json
