@@ -13,19 +13,27 @@ class Status(TypedDict):
     sessions: int
     messages: int
     embedded_messages: int
-    embedding_model_id: None
+    embedding_model_id: str | None
     import_errors: list[str]
     runtime_network: str
 
 
 def get_status(database_path: Path | None = None) -> Status:
-    sessions = messages = 0
+    sessions = messages = embedded_messages = 0
+    embedding_model_id = None
     errors: list[str] = []
     last_refresh = None
     if database_path is not None and database_path.exists():
         connection = sqlite3.connect(database_path)
         sessions = connection.execute("SELECT count(*) FROM sessions").fetchone()[0]
         messages = connection.execute("SELECT count(*) FROM messages").fetchone()[0]
+        embedded_messages = connection.execute(
+            "SELECT count(*) FROM embeddings"
+        ).fetchone()[0]
+        model = connection.execute(
+            "SELECT model_id FROM embeddings GROUP BY model_id ORDER BY count(*) DESC LIMIT 1"
+        ).fetchone()
+        embedding_model_id = model[0] if model else None
         errors = [
             row[0]
             for row in connection.execute(
@@ -41,8 +49,8 @@ def get_status(database_path: Path | None = None) -> Status:
         "last_refresh": last_refresh,
         "sessions": sessions,
         "messages": messages,
-        "embedded_messages": 0,
-        "embedding_model_id": None,
+        "embedded_messages": embedded_messages,
+        "embedding_model_id": embedding_model_id,
         "import_errors": errors,
         "runtime_network": "disabled by Docker Compose",
     }

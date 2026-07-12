@@ -67,3 +67,13 @@ CREATE TRIGGER IF NOT EXISTS messages_fts_update AFTER UPDATE OF text ON message
 END;
 
 INSERT INTO messages_fts(messages_fts) VALUES ('rebuild');
+
+CREATE TABLE IF NOT EXISTS embeddings (
+    message_id TEXT PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,
+    model_id TEXT NOT NULL,
+    dimension INTEGER NOT NULL,
+    content_hash TEXT NOT NULL,
+    vector BLOB NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS embeddings_model ON embeddings(model_id, dimension);

@@ -13,6 +13,9 @@ services:
       HOME: /tmp/home
       LOCALLORE_DB: /data/locallore.db
       LOCALLORE_SESSIONS: /sessions
+      LOCALLORE_MODEL_PATH: /models
+      LOCALLORE_EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
+      LOCALLORE_EMBEDDING_DIMENSION: "384"
     volumes:
       - type: bind
         source: ${CLAUDE_PROJECTS_DIR}
