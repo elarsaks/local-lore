@@ -97,6 +97,28 @@ def _import_file(connection: sqlite3.Connection, source: SourceFile) -> tuple[in
                     ),
                 )
                 added += cursor.rowcount
+                stored_message_id = parsed.message_id
+                if cursor.rowcount == 0:
+                    stored = connection.execute(
+                        "SELECT id FROM messages WHERE id = ? OR "
+                        "(session_id = ? AND source_line = ? AND content_hash = ?)",
+                        (
+                            parsed.message_id,
+                            parsed.session_id,
+                            line_number,
+                            content_hash,
+                        ),
+                    ).fetchone()
+                    if stored is None:
+                        raise sqlite3.IntegrityError(
+                            "ignored message could not be resolved"
+                        )
+                    stored_message_id = stored["id"]
+                for path, operation in parsed.file_operations:
+                    connection.execute(
+                        "INSERT OR IGNORE INTO file_operations(message_id, path, operation) VALUES (?, ?, ?)",
+                        (stored_message_id, path, operation),
+                    )
             final_offset = handle.tell()
         error_text = f"{errors} malformed record(s)" if errors else None
         connection.execute(

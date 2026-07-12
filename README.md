@@ -2,9 +2,13 @@
 
 LocalLore is an offline memory layer for Claude Code. It will index local Claude Code session history and make past work searchable through the `/remember` command.
 
-## Milestone 1
+## Milestone 3
 
-This first slice provides the plugin skeleton and a minimal MCP server with `locallore_status`. Session indexing and search are planned for later milestones.
+LocalLore incrementally indexes normalized session and message data in SQLite.
+SQLite FTS5 provides keyword retrieval through `locallore_search`, while
+`locallore_context` retrieves a bounded window around selected evidence. Search
+supports project, date, role, and file filters. Semantic embeddings are planned
+for Milestone 4.
 
 ## Requirements
 
@@ -27,9 +31,13 @@ Load the plugin for a Claude Code session:
 claude --plugin-dir .
 ```
 
-Run `/mcp` in Claude Code to confirm that the LocalLore server is connected. The available tool is `locallore_status`.
+Run `/mcp` in Claude Code to confirm that the LocalLore server is connected. The
+available tools are `locallore_status`, `locallore_search`, and
+`locallore_context`. Use `/remember <question>` to search and synthesize evidence
+from indexed sessions.
 
-The container is configured with `network_mode: none`, mounts session files read-only, and stores future index data in the named `locallore-data` volume.
+The container is configured with `network_mode: none`, mounts session files
+read-only, and stores its SQLite index in the named `locallore-data` volume.
 
 ## Direct MCP smoke test
 
@@ -42,13 +50,14 @@ printf '%s\n' \
 | CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" docker compose run --rm -T locallore mcp
 ```
 
-The status response is expected to show zero sessions and messages until indexing is implemented.
+The status response reports the indexed session and message counts, last refresh,
+and any import errors.
 
 ## Evals
 
-The first eval suite defines the product contract for `/remember` before search is
-implemented. It covers query fidelity, project/date/file filters, contextual
-follow-up, evidence synthesis, provenance, and honest no-result behavior.
+The eval suite defines the product contract for `/remember`. It covers query
+fidelity, project/date/file filters, contextual follow-up, evidence synthesis,
+provenance, and honest no-result behavior.
 
 Run the deterministic eval checks with the rest of the test suite:
 
