@@ -18,7 +18,7 @@ def snapshot(connection):
     }
 
 
-def test_migrations_are_repeatable_and_import_is_idempotent(tmp_path: Path) -> None:
+def test_unchanged_sessions_are_not_reimported(tmp_path: Path) -> None:
     sessions = tmp_path / "sessions"
     shutil.copytree(FIXTURES, sessions)
     connection = connect(tmp_path / "db.sqlite")
@@ -33,7 +33,7 @@ def test_migrations_are_repeatable_and_import_is_idempotent(tmp_path: Path) -> N
     assert snapshot(connection) == before
 
 
-def test_append_only_refresh_reads_new_records(tmp_path: Path) -> None:
+def test_new_complete_records_are_imported_on_refresh(tmp_path: Path) -> None:
     sessions = tmp_path / "sessions"
     shutil.copytree(FIXTURES, sessions)
     connection = connect(tmp_path / "db.sqlite")
@@ -47,7 +47,7 @@ def test_append_only_refresh_reads_new_records(tmp_path: Path) -> None:
     assert connection.execute("SELECT count(*) FROM messages").fetchone()[0] == 3
 
 
-def test_incomplete_final_line_waits_for_next_refresh(tmp_path: Path) -> None:
+def test_incomplete_trailing_record_is_deferred_until_complete(tmp_path: Path) -> None:
     sessions = tmp_path / "sessions"
     sessions.mkdir()
     source = sessions / "session.jsonl"
@@ -65,7 +65,7 @@ def test_incomplete_final_line_waits_for_next_refresh(tmp_path: Path) -> None:
     assert import_sessions(connection, sessions).messages_added == 1
 
 
-def test_truncation_rebuilds_only_the_affected_file(tmp_path: Path) -> None:
+def test_replaced_or_truncated_session_is_rebuilt(tmp_path: Path) -> None:
     sessions = tmp_path / "sessions"
     shutil.copytree(FIXTURES, sessions)
     connection = connect(tmp_path / "db.sqlite")
@@ -77,7 +77,7 @@ def test_truncation_rebuilds_only_the_affected_file(tmp_path: Path) -> None:
     assert connection.execute("SELECT count(*) FROM messages").fetchone()[0] == 1
 
 
-def test_discovery_ignores_symlinks_outside_root(tmp_path: Path) -> None:
+def test_outside_session_symlinks_are_ignored(tmp_path: Path) -> None:
     root = tmp_path / "sessions"
     root.mkdir()
     outside = tmp_path / "outside.jsonl"

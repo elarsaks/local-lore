@@ -13,7 +13,7 @@ from locallore.mcp_server import locallore_status, mcp
 ROOT = Path(__file__).parents[1]
 
 
-def test_manifest_has_expected_identity_and_author() -> None:
+def test_plugin_manifest_has_expected_identity_and_author() -> None:
     manifest = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
 
     assert manifest["name"] == "locallore"
@@ -21,13 +21,13 @@ def test_manifest_has_expected_identity_and_author() -> None:
     assert manifest["author"]["name"] == "Elar Saks"
 
 
-def test_mcp_registers_only_status_tool() -> None:
+def test_mcp_exposes_the_status_tool() -> None:
     tools = asyncio.run(mcp.list_tools())
 
     assert [tool.name for tool in tools] == ["locallore_status"]
 
 
-def test_status_reports_expected_empty_index() -> None:
+def test_status_reports_an_empty_index_before_import() -> None:
     status = locallore_status()
 
     assert status["schema_version"] == 1
@@ -59,7 +59,7 @@ def test_launcher_scripts_are_executable_and_use_strict_mode() -> None:
         assert "set -eu" in content
 
 
-def test_mcp_config_uses_plugin_root_launcher() -> None:
+def test_mcp_configuration_uses_the_plugin_root_launcher() -> None:
     config = json.loads((ROOT / ".mcp.json").read_text())
 
     assert config["mcpServers"]["locallore"]["command"] == (

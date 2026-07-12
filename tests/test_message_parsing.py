@@ -3,7 +3,7 @@ from pathlib import Path
 from locallore.parser import parse_record
 
 
-def test_parser_extracts_text_blocks_and_tolerates_unknown_fields() -> None:
+def test_assistant_message_text_is_extracted_from_content_blocks() -> None:
     parsed = parse_record(
         {"sessionId": "s", "extra": True, "message": {"role": "assistant", "content": [{"type": "text", "text": "hello"}]}},
         Path("session.jsonl"),
@@ -14,5 +14,5 @@ def test_parser_extracts_text_blocks_and_tolerates_unknown_fields() -> None:
     assert parsed.session_id == "s"
 
 
-def test_parser_ignores_unrecognized_records() -> None:
+def test_non_message_records_are_ignored() -> None:
     assert parse_record({"type": "progress"}, Path("session.jsonl"), 1) is None
