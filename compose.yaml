@@ -1,0 +1,29 @@
+services:
+  locallore:
+    build:
+      context: .
+    network_mode: none
+    stdin_open: true
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      HOME: /tmp/home
+      LOCALLORE_DB: /data/locallore.db
+      LOCALLORE_SESSIONS: /sessions
+    volumes:
+      - type: bind
+        source: ${CLAUDE_PROJECTS_DIR}
+        target: /sessions
+        read_only: true
+      - type: volume
+        source: locallore-data
+        target: /data
+    tmpfs:
+      - /tmp:size=256m,uid=65532,gid=65532
+    command: ["mcp"]
+
+volumes:
+  locallore-data:

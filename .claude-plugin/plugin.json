@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "locallore",
+  "description": "Offline local memory for Claude Code sessions",
+  "version": "0.1.0"
+}

@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "locallore": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/mcp.sh"
+    }
+  }
+}
