@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import asyncio
 import json
-import os
 import stat
 from pathlib import Path
 
@@ -22,10 +22,12 @@ def test_manifest_has_expected_identity_and_author() -> None:
 
 
 def test_mcp_registers_only_status_tool() -> None:
-    assert set(mcp._tool_manager._tools) == {"locallore_status"}
+    tools = asyncio.run(mcp.list_tools())
+
+    assert [tool.name for tool in tools] == ["locallore_status"]
 
 
-def test_status_is_healthy_and_protocol_safe() -> None:
+def test_status_reports_expected_empty_index() -> None:
     status = locallore_status()
 
     assert status["schema_version"] == 0
