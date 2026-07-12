@@ -44,6 +44,22 @@ printf '%s\n' \
 
 The status response is expected to show zero sessions and messages until indexing is implemented.
 
+## Evals
+
+The first eval suite defines the product contract for `/remember` before search is
+implemented. It covers query fidelity, project/date/file filters, contextual
+follow-up, evidence synthesis, provenance, and honest no-result behavior.
+
+Run the deterministic eval checks with the rest of the test suite:
+
+```bash
+uv run pytest
+```
+
+The cases live in `evals/remember.yaml`. Future retrieval milestones can execute
+the same cases against indexed fixtures while keeping these expected behaviors
+stable.
+
 ## Privacy
 
 Runtime networking is disabled by Docker. Local session files are never edited or uploaded. The SQLite index will live in the Docker volume, so anyone with access to that volume can read indexed session content.
