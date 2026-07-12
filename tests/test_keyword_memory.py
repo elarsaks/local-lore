@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -85,3 +86,43 @@ def test_rebuilding_source_removes_stale_fts_rows(tmp_path: Path) -> None:
     import_sessions(connection, tmp_path / "sessions")
     assert search_messages(connection, "HTTP")["results"] == []
     assert search_messages(connection, "replacement")["results"][0]["message_id"] == "replacement"
+
+
+def test_file_operation_uses_existing_id_for_logically_duplicate_message(
+    tmp_path: Path,
+) -> None:
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    text = "Tool use: Edit"
+    (sessions / "history.jsonl").write_text(
+        '{"sessionId":"s1","uuid":"new-id","message":{"role":"assistant",'
+        '"content":[{"type":"tool_use","name":"Edit",'
+        '"input":{"file_path":"compose.yaml"}}]}}\n'
+    )
+    connection = connect(tmp_path / "locallore.db")
+    migrate(connection)
+    connection.execute(
+        "INSERT INTO sessions(id, source_path, imported_at) VALUES (?, ?, ?)",
+        ("s1", "history.jsonl", "2026-01-01T00:00:00Z"),
+    )
+    connection.execute(
+        "INSERT INTO messages(id, session_id, source_line, role, raw_type, text, content_hash) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (
+            "legacy-id",
+            "s1",
+            1,
+            "assistant",
+            "assistant",
+            text,
+            hashlib.sha256(text.encode()).hexdigest(),
+        ),
+    )
+    connection.commit()
+
+    import_sessions(connection, sessions)
+
+    operation = connection.execute(
+        "SELECT message_id, path FROM file_operations"
+    ).fetchone()
+    assert tuple(operation) == ("legacy-id", "compose.yaml")
