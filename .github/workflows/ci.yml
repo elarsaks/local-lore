@@ -9,29 +9,63 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Tests and configuration
+  evaluation-contract:
+    name: Evaluation contract
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-
       - name: Install locked development dependencies
         run: uv sync --locked --dev
 
-      - name: Run unit tests
-        run: uv run pytest -q
+      - name: Verify evaluation contract
+        run: uv run pytest -q tests/test_evaluation_contract.py
+
+  session-ingestion:
+    name: Session ingestion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked development dependencies
+        run: uv sync --locked --dev
+      - name: Verify message parsing and session refresh
+        run: uv run pytest -q tests/test_message_parsing.py tests/test_session_ingestion.py
+
+  plugin-runtime:
+    name: Plugin runtime
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked development dependencies
+        run: uv sync --locked --dev
+      - name: Verify plugin runtime
+        run: uv run pytest -q tests/test_plugin_runtime.py
 
       - name: Validate plugin manifest
         run: |
@@ -50,5 +84,11 @@ jobs:
           CLAUDE_PROJECTS_DIR: /tmp
         run: docker compose config --quiet
 
+  offline-image:
+    name: Offline image build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
       - name: Build offline runtime image
         run: docker build --tag locallore-ci .
