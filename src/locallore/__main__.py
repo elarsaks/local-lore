@@ -30,25 +30,15 @@ def _index_lock(database_path: Path):
     lock_path = database_path.with_suffix(database_path.suffix + ".index.lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
         try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            yield False
-            return
-        try:
-            yield True
+            yield
         finally:
             fcntl.flock(lock, fcntl.LOCK_UN)
 
 
 def index(settings: Settings) -> None:
-    with _index_lock(settings.database_path) as acquired:
-        if not acquired:
-            print(
-                "Another LocalLore process is already indexing; skipping this refresh.",
-                file=sys.stderr,
-            )
-            return
+    with _index_lock(settings.database_path):
         _index_locked(settings)
 
 

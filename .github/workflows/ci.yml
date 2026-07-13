@@ -116,6 +116,10 @@ jobs:
           docker volume create locallore-ci-data
           docker run --rm --network none --read-only \
             --tmpfs /tmp:size=256m,uid=65532,gid=65532 \
+            --mount type=volume,source=locallore-ci-data,target=/data \
+            locallore-ci configure all
+          docker run --rm --network none --read-only \
+            --tmpfs /tmp:size=256m,uid=65532,gid=65532 \
             --mount type=bind,source="$GITHUB_WORKSPACE/evals/fixtures/keyword-sessions",target=/sessions,readonly \
             --mount type=volume,source=locallore-ci-data,target=/data \
             locallore-ci index

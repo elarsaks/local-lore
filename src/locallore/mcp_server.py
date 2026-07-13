@@ -19,12 +19,12 @@ mcp = FastMCP(
     instructions=(
         "LocalLore is offline memory for local Claude Code sessions. At the "
         "start of every Claude Code session, call locallore_status before "
-        "answering the user's first prompt. If its messages value is 0, ask "
+        "answering the user's first prompt. If configured is false, ask "
         "the user whether they want to set up LocalLore. Do not start setup "
         "without confirmation. If they agree, ask which history window to "
         "index (today, one week, one month (recommended), three months, one "
         "year, or all available history), then use the locallore setup "
-        "command. Do not make this offer when messages is greater than 0."
+        "command. Do not make this offer when configured is true."
     ),
 )
 

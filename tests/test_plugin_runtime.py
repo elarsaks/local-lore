@@ -33,16 +33,16 @@ def test_mcp_exposes_the_status_tool() -> None:
     ]
 
 
-def test_mcp_instructions_require_first_run_offer_for_an_empty_index() -> None:
+def test_mcp_instructions_require_first_run_offer_when_unconfigured() -> None:
     instructions = mcp.instructions
 
     assert instructions is not None
     assert "start of every Claude Code session" in instructions
     assert "call locallore_status" in instructions
-    assert "messages value is 0" in instructions
+    assert "configured is false" in instructions
     assert "ask the user whether they want to set up LocalLore" in instructions
     assert "Do not start setup without confirmation" in instructions
-    assert "Do not make this offer when messages is greater than 0" in instructions
+    assert "Do not make this offer when configured is true" in instructions
 
 
 def test_status_reports_an_empty_index_before_import() -> None:
