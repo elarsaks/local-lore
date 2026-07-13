@@ -6,16 +6,26 @@ from functools import lru_cache
 from mcp.server.fastmcp import FastMCP
 
 from .config import Settings
-from .db import connect
+from .db import connect, migrate
 from .embeddings import FastEmbedder
 from .search import get_context, search_messages
 from .status import Status, get_status
+from .preferences import configure_history, get_history_setting
 
 logging.basicConfig(level=logging.INFO)
 
 mcp = FastMCP(
     "LocalLore",
-    instructions="Offline memory for local Claude Code sessions.",
+    instructions=(
+        "LocalLore is offline memory for local Claude Code sessions. At the "
+        "start of every Claude Code session, call locallore_status before "
+        "answering the user's first prompt. If its messages value is 0, ask "
+        "the user whether they want to set up LocalLore. Do not start setup "
+        "without confirmation. If they agree, ask which history window to "
+        "index (today, one week, one month (recommended), three months, one "
+        "year, or all available history), then use the locallore setup "
+        "command. Do not make this offer when messages is greater than 0."
+    ),
 )
 
 
@@ -31,8 +41,26 @@ def _embedder() -> FastEmbedder:
 
 @mcp.tool()
 def locallore_status() -> Status:
-    """Report LocalLore index and offline-runtime status."""
+    """Report index status. Call this at session start to detect an empty index."""
     return get_status(Settings.from_env().database_path)
+
+
+@mcp.tool()
+def locallore_configure(history: str) -> dict[str, object]:
+    """Set the first-run history window before indexing session memory."""
+    settings = Settings.from_env()
+    with connect(settings.database_path) as connection:
+        migrate(connection)
+        cutoff = configure_history(connection, history)
+    return {
+        "configured": True,
+        "history": history,
+        "history_after": None if cutoff == "all" else cutoff,
+        "next_step": (
+            "Indexing is CPU-intensive and can take several minutes. Run "
+            "scripts/index.sh, then reconnect LocalLore from /mcp."
+        ),
+    }
 
 
 @mcp.tool()
@@ -47,6 +75,11 @@ def locallore_search(
 ) -> dict[str, object]:
     """Search indexed session history using full-text search and filters."""
     with connect(Settings.from_env().database_path) as connection:
+        if get_history_setting(connection) is None:
+            raise ValueError(
+                "LocalLore is not configured. Run /locallore:setup and choose "
+                "a history window before searching."
+            )
         return search_messages(
             connection,
             query,

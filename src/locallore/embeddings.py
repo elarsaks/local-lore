@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import sqlite3
 from pathlib import Path
+from collections.abc import Callable
 from typing import Protocol, Sequence
 
 import numpy as np
@@ -104,6 +105,7 @@ def embed_pending_messages(
     embedder: Embedder,
     *,
     batch_size: int = 64,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> int:
     if batch_size < 1:
         raise ValueError("embedding batch size must be positive")
@@ -138,4 +140,6 @@ def embed_pending_messages(
                     ),
                 )
         embedded += len(batch)
+        if on_progress is not None:
+            on_progress(embedded, len(rows))
     return embedded

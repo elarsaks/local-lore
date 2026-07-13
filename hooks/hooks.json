@@ -1,0 +1,17 @@
+{
+  "description": "Offer consent-based LocalLore onboarding after installation",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/onboarding.sh",
+            "args": ["${CLAUDE_PLUGIN_DATA}"],
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

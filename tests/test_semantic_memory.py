@@ -97,6 +97,24 @@ def test_embedding_is_batched_idempotent_and_model_aware(tmp_path: Path) -> None
     assert status["embedding_model_id"] == "fake-v2"
 
 
+def test_embedding_reports_batch_progress(tmp_path: Path) -> None:
+    connection = semantic_database(tmp_path)
+    texts = {
+        "Users cannot sign in after their credentials expire": [1, 0, 0],
+        "The schema migration is idempotent": [0, 1, 0],
+    }
+    progress: list[tuple[int, int]] = []
+
+    embed_pending_messages(
+        connection,
+        FakeEmbedder(texts),
+        batch_size=1,
+        on_progress=lambda completed, total: progress.append((completed, total)),
+    )
+
+    assert progress == [(1, 2), (2, 2)]
+
+
 def test_large_raw_content_is_not_embedded(tmp_path: Path) -> None:
     connection = semantic_database(tmp_path)
     large_text = "x" * (MAX_EMBEDDING_CHARS + 1)

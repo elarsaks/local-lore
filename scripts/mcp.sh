@@ -16,4 +16,4 @@ if [ ! -d "$SESSIONS_DIR" ]; then
 fi
 
 export CLAUDE_PROJECTS_DIR=$SESSIONS_DIR
-exec docker compose --project-directory "$PLUGIN_ROOT" -f "$PLUGIN_ROOT/compose.yaml" run --rm -T locallore mcp
+exec docker compose --project-name locallore --project-directory "$PLUGIN_ROOT" -f "$PLUGIN_ROOT/compose.yaml" run --rm -T locallore mcp

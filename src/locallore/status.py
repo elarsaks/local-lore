@@ -16,6 +16,8 @@ class Status(TypedDict):
     embedding_model_id: str | None
     import_errors: list[str]
     runtime_network: str
+    configured: bool
+    history_after: str | None
 
 
 def get_status(database_path: Path | None = None) -> Status:
@@ -23,6 +25,8 @@ def get_status(database_path: Path | None = None) -> Status:
     embedding_model_id = None
     errors: list[str] = []
     last_refresh = None
+    configured = False
+    history_after = None
     if database_path is not None and database_path.exists():
         connection = sqlite3.connect(database_path)
         sessions = connection.execute("SELECT count(*) FROM sessions").fetchone()[0]
@@ -43,6 +47,11 @@ def get_status(database_path: Path | None = None) -> Status:
         last_refresh = connection.execute(
             "SELECT max(updated_at) FROM import_files"
         ).fetchone()[0]
+        setting = connection.execute(
+            "SELECT value FROM settings WHERE key = 'history_after'"
+        ).fetchone()
+        configured = setting is not None
+        history_after = None if setting is None or setting[0] == "all" else setting[0]
         connection.close()
     return {
         "schema_version": SCHEMA_VERSION,
@@ -53,4 +62,6 @@ def get_status(database_path: Path | None = None) -> Status:
         "embedding_model_id": embedding_model_id,
         "import_errors": errors,
         "runtime_network": "disabled by Docker Compose",
+        "configured": configured,
+        "history_after": history_after,
     }

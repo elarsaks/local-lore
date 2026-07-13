@@ -25,7 +25,11 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _import_file(connection: sqlite3.Connection, source: SourceFile) -> tuple[int, int]:
+def _import_file(
+    connection: sqlite3.Connection,
+    source: SourceFile,
+    history_after: str | None = None,
+) -> tuple[int, int]:
     checkpoint = connection.execute(
         "SELECT * FROM import_files WHERE path = ?", (source.relative_path,)
     ).fetchone()
@@ -68,6 +72,14 @@ def _import_file(connection: sqlite3.Connection, source: SourceFile) -> tuple[in
                     )
                     continue
                 if parsed is None:
+                    continue
+                if (
+                    history_after is not None
+                    and (
+                        parsed.timestamp is None
+                        or parsed.timestamp < history_after
+                    )
+                ):
                     continue
                 imported_at = parsed.timestamp or _now()
                 connection.execute(
@@ -129,7 +141,12 @@ def _import_file(connection: sqlite3.Connection, source: SourceFile) -> tuple[in
     return added, errors
 
 
-def import_sessions(connection: sqlite3.Connection, root: Path) -> ImportResult:
+def import_sessions(
+    connection: sqlite3.Connection,
+    root: Path,
+    *,
+    history_after: str | None = None,
+) -> ImportResult:
     sources = discover(root)
     changed = added = errors = 0
     for source in sources:
@@ -142,7 +159,9 @@ def import_sessions(connection: sqlite3.Connection, root: Path) -> ImportResult:
             source.size_bytes,
             source.mtime_ns,
         )
-        file_added, file_errors = _import_file(connection, source)
+        file_added, file_errors = _import_file(
+            connection, source, history_after=history_after
+        )
         changed += int(is_changed)
         added += file_added
         errors += file_errors

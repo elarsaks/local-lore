@@ -15,7 +15,23 @@ The first image build needs internet access to download pinned Python packages
 and the embedding model. Runtime use, indexing, diagnostics, and search are
 offline.
 
-## Install
+## Install from a plugin marketplace
+
+Install LocalLore from its marketplace entry, then run `/reload-plugins` if you
+installed it during an active Claude Code session. On the first prompt you send
+after loading LocalLore, Claude offers to set it up once. It
+explains the local-history access and
+indexing cost, asks how much history to index, and—after your confirmation—runs
+the build, diagnostics, configuration, and initial index automatically.
+
+Docker with Compose v2 must be installed and running. The first setup needs
+internet access to download pinned Python packages and the embedding model.
+Runtime use, subsequent indexing, diagnostics, and search are offline.
+
+`/locallore:setup` remains available if you dismiss onboarding or want to change
+the history window later.
+
+## Install from a source checkout
 
 Clone this repository, validate it, build the image, and run the diagnostic:
 
@@ -31,9 +47,30 @@ Then load the checkout for a Claude Code session:
 claude --plugin-dir .
 ```
 
-Run `/mcp` to confirm that `locallore` is connected, then ask
-`/remember <question>`. The MCP server exposes only `locallore_status`,
-`locallore_search`, and `locallore_context`.
+Claude offers first-run setup in response to your first prompt. You can also run
+`/locallore:setup` explicitly. After setup, run `/mcp` to confirm that
+`locallore` is connected, then ask `/remember <question>`. The MCP server exposes
+only `locallore_status`, `locallore_configure`, `locallore_search`, and
+`locallore_context`.
+
+### First startup
+
+Claude offers setup after installation and asks you to choose today (from 00:00
+UTC), one week, one month (recommended), three months, one year, or all
+available history. LocalLore
+stores the resulting absolute cutoff in its private Docker volume. Changing it
+later through `/locallore:setup` safely rebuilds the derived index and never
+edits Claude session files.
+
+After confirmation, setup builds the container, runs diagnostics, and performs
+the initial index. Indexing and local embedding can use significant CPU for
+several minutes, especially when selecting all history. LocalLore reports
+five setup phases plus an `Embedding messages [bar] completed/total (percent)`
+progress bar throughout the longest phase. When it finishes, run
+`/reload-plugins` if the MCP server was not already connected. Later startups
+process only new or changed records and are normally much faster. A persistent
+lock prevents two LocalLore containers from performing the same indexing pass
+concurrently.
 
 ## Operations
 
@@ -87,14 +124,14 @@ provide encryption at rest; rely on host disk encryption and OS access controls.
 Find the Compose project and remove its volume (this is irreversible):
 
 ```bash
-docker compose -f compose.yaml down
+docker compose --project-name locallore -f compose.yaml down
 docker volume ls --filter name=locallore-data
-docker volume rm local-lore_locallore-data
+docker volume rm locallore_locallore-data
 ```
 
-Compose derives the prefix from the checkout directory, so use the exact volume
-name printed by `docker volume ls`. This removes only LocalLore's derived index,
-not Claude session files. The next launch creates and rebuilds an empty index.
+Use the exact volume name printed by `docker volume ls`. This removes only
+LocalLore's derived index, not Claude session files. The next setup creates and
+rebuilds an empty index.
 
 ## Troubleshooting
 

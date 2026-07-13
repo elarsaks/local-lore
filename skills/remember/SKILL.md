@@ -5,6 +5,10 @@ description: Search offline Claude Code history when asked how prior work was do
 
 # Remember past work
 
+Call `locallore_status` first. If `configured` is false, explain that LocalLore
+needs a history window and guide the user through `/locallore:setup` before
+searching.
+
 Use LocalLore before answering questions about previous Claude Code work, even when the user does not explicitly invoke `/remember`.
 
 1. Search using the user's wording first.

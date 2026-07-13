@@ -84,3 +84,39 @@ def test_outside_session_symlinks_are_ignored(tmp_path: Path) -> None:
     outside.write_text("{}\n")
     (root / "linked.jsonl").symlink_to(outside)
     assert discover(root) == []
+
+
+def test_history_cutoff_excludes_older_messages(tmp_path: Path) -> None:
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    (sessions / "session.jsonl").write_text(
+        '{"sessionId":"s","uuid":"old","timestamp":"2025-01-01T00:00:00Z","message":{"role":"user","content":"old"}}\n'
+        '{"sessionId":"s","uuid":"new","timestamp":"2026-01-01T00:00:00Z","message":{"role":"user","content":"new"}}\n'
+    )
+    connection = connect(tmp_path / "db.sqlite")
+    migrate(connection)
+
+    result = import_sessions(
+        connection, sessions, history_after="2025-06-01T00:00:00Z"
+    )
+
+    assert result.messages_added == 1
+    assert connection.execute("SELECT text FROM messages").fetchone()[0] == "new"
+
+
+def test_history_cutoff_excludes_undated_messages(tmp_path: Path) -> None:
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    (sessions / "session.jsonl").write_text(
+        '{"sessionId":"s","uuid":"undated","message":{"role":"user","content":"unknown"}}\n'
+        '{"sessionId":"s","uuid":"today","timestamp":"2026-07-13T12:00:00Z","message":{"role":"user","content":"today"}}\n'
+    )
+    connection = connect(tmp_path / "db.sqlite")
+    migrate(connection)
+
+    result = import_sessions(
+        connection, sessions, history_after="2026-07-13T00:00:00Z"
+    )
+
+    assert result.messages_added == 1
+    assert connection.execute("SELECT text FROM messages").fetchone()[0] == "today"
