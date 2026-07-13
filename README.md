@@ -125,11 +125,5 @@ generous CI thresholds. This provides a repeatable signal before considering a
 SQLite vector extension. The production model smoke test is performed by
 `doctor` inside the offline container.
 
-Before publishing a release, complete the [release checklist](RELEASE_CHECKLIST.md).
 See [RELEASE_NOTES.md](RELEASE_NOTES.md) for version 0.1.0 behavior,
 requirements, privacy limitations, and known issues.
-
-## Release readiness
-
-Use [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) to track the automated,
-manual, security, and publishing checks required before a release.
