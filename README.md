@@ -87,14 +87,11 @@ provide encryption at rest; rely on host disk encryption and OS access controls.
 Find the Compose project and remove its volume (this is irreversible):
 
 ```bash
-docker compose -f compose.yaml down
-docker volume ls --filter name=locallore-data
-docker volume rm local-lore_locallore-data
+docker compose -f compose.yaml down --volumes
 ```
 
-Compose derives the prefix from the checkout directory, so use the exact volume
-name printed by `docker volume ls`. This removes only LocalLore's derived index,
-not Claude session files. The next launch creates and rebuilds an empty index.
+This removes the LocalLore Compose project's derived index volume, not Claude
+session files. The next launch creates and rebuilds an empty index.
 
 ## Troubleshooting
 
@@ -128,9 +125,11 @@ generous CI thresholds. This provides a repeatable signal before considering a
 SQLite vector extension. The production model smoke test is performed by
 `doctor` inside the offline container.
 
-For a direct MCP protocol smoke test, see [the build specification](LOCALLORE_BUILD_SPEC.md#13-mcp-server).
+Before publishing a release, complete the [release checklist](RELEASE_CHECKLIST.md).
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) for version 0.1.0 behavior,
+requirements, privacy limitations, and known issues.
 
-## Design
+## Release readiness
 
-See [LOCALLORE_BUILD_SPEC.md](LOCALLORE_BUILD_SPEC.md) for the architecture,
-security model, test requirements, and milestones.
+Use [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) to track the automated,
+manual, security, and publishing checks required before a release.
