@@ -5,6 +5,16 @@ local Claude Code session history and retrieves past work through `/remember`.
 SQLite FTS5 and an image-bundled sentence-embedding model provide hybrid search;
 the runtime container has no network interface.
 
+## Example
+
+Ask about earlier work in natural language. LocalLore automatically searches
+indexed Claude Code history and synthesizes the relevant incident, fixes, and
+remaining context.
+
+![LocalLore recalling an earlier incident from Claude Code session history](docs/locallore-example.png)
+
+*Proprietary identifiers in this example have been redacted.*
+
 ## Requirements
 
 - Claude Code with plugin support
