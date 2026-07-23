@@ -10,31 +10,33 @@ from .db import connect, migrate
 from .doctor import DoctorError, run_doctor
 from .embeddings import FastEmbedder, embed_pending_messages
 from .importer import import_sessions
+from .locking import acquire_index_lock
 from .mcp_server import run_server
 from .status import get_status
 
 
 def index(settings: Settings) -> None:
-    connection = connect(settings.database_path)
-    try:
-        migrate(connection)
-        result = import_sessions(connection, settings.sessions_path)
-        embedder = FastEmbedder(
-            settings.embedding_model,
-            settings.model_path,
-            settings.embedding_dimension,
-        )
-        embedded = embed_pending_messages(
-            connection, embedder, batch_size=settings.embedding_batch_size
-        )
-        print(
-            f"Indexed {result.messages_added} messages "
-            f"from {result.files_changed} changed files; "
-            f"embedded {embedded} messages",
-            file=sys.stderr,
-        )
-    finally:
-        connection.close()
+    with acquire_index_lock(settings.database_path):
+        connection = connect(settings.database_path)
+        try:
+            migrate(connection)
+            result = import_sessions(connection, settings.sessions_path)
+            embedder = FastEmbedder(
+                settings.embedding_model,
+                settings.model_path,
+                settings.embedding_dimension,
+            )
+            embedded = embed_pending_messages(
+                connection, embedder, batch_size=settings.embedding_batch_size
+            )
+            print(
+                f"Indexed {result.messages_added} messages "
+                f"from {result.files_changed} changed files; "
+                f"embedded {embedded} messages",
+                file=sys.stderr,
+            )
+        finally:
+            connection.close()
 
 
 def main() -> None:
