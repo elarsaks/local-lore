@@ -8,6 +8,7 @@ from typing import Protocol, Sequence
 import numpy as np
 
 MAX_EMBEDDING_CHARS = 8000
+MODEL_CHECKSUM_FILE = ".locallore-model.sha256"
 
 
 class Embedder(Protocol):
@@ -36,8 +37,20 @@ def decode_vector(value: bytes, dimension: int) -> np.ndarray:
 
 
 def _directory_checksum(path: Path) -> str:
+    checksum_path = path / MODEL_CHECKSUM_FILE
+    if checksum_path.is_file():
+        checksum = checksum_path.read_text().strip().lower()
+        if len(checksum) != 64 or any(
+            character not in "0123456789abcdef" for character in checksum
+        ):
+            raise ValueError(f"invalid model checksum in {checksum_path}")
+        return checksum
     digest = hashlib.sha256()
-    files = sorted(item for item in path.rglob("*") if item.is_file())
+    files = sorted(
+        item
+        for item in path.rglob("*")
+        if item.is_file() and item != checksum_path
+    )
     if not files:
         raise FileNotFoundError(f"embedding model assets not found in {path}")
     for item in files:
@@ -48,18 +61,23 @@ def _directory_checksum(path: Path) -> str:
     return digest.hexdigest()
 
 
+def embedding_model_id(model_name: str, cache_dir: Path) -> str:
+    return f"{model_name}@sha256:{_directory_checksum(cache_dir)}"
+
+
 class FastEmbedder:
     def __init__(
         self,
         model_name: str,
         cache_dir: Path,
         dimension: int,
+        *,
+        model_id: str | None = None,
     ) -> None:
         from fastembed import TextEmbedding
 
         self._dimension = dimension
-        checksum = _directory_checksum(cache_dir)
-        self._model_id = f"{model_name}@sha256:{checksum}"
+        self._model_id = model_id or embedding_model_id(model_name, cache_dir)
         self._model = TextEmbedding(
             model_name=model_name,
             cache_dir=str(cache_dir),
@@ -97,6 +115,25 @@ class FastEmbedder:
         if norm == 0:
             raise ValueError("embedding model returned a zero-length query vector")
         return vectors[0] / norm
+
+
+def has_pending_messages(
+    connection: sqlite3.Connection,
+    model_id: str,
+    dimension: int,
+) -> bool:
+    row = connection.execute(
+        "SELECT EXISTS("
+        "SELECT 1 FROM messages m "
+        "LEFT JOIN embeddings e ON e.message_id = m.id "
+        "WHERE m.role IN ('user', 'assistant') AND length(trim(m.text)) >= 3 "
+        "AND length(m.text) <= ? "
+        "AND (e.message_id IS NULL OR e.model_id != ? OR e.dimension != ? "
+        "OR e.content_hash != m.content_hash)"
+        ")",
+        (MAX_EMBEDDING_CHARS, model_id, dimension),
+    ).fetchone()
+    return bool(row[0])
 
 
 def embed_pending_messages(

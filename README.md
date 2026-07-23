@@ -131,5 +131,14 @@ generous CI thresholds. This provides a repeatable signal before considering a
 SQLite vector extension. The production model smoke test is performed by
 `doctor` inside the offline container.
 
+The indexing profiler can be run with:
+
+```bash
+uv run python benchmarks/profile_indexing.py
+```
+
+See [docs/indexing-performance.md](docs/indexing-performance.md) for the
+profiling method, bottleneck analysis, and before/after startup measurements.
+
 See [RELEASE_NOTES.md](RELEASE_NOTES.md) for version 0.1.0 behavior,
 requirements, privacy limitations, and known issues.

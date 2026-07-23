@@ -8,7 +8,12 @@ import sys
 from .config import Settings
 from .db import connect, migrate
 from .doctor import DoctorError, run_doctor
-from .embeddings import FastEmbedder, embed_pending_messages
+from .embeddings import (
+    FastEmbedder,
+    embed_pending_messages,
+    embedding_model_id,
+    has_pending_messages,
+)
 from .importer import import_sessions
 from .locking import acquire_index_lock
 from .mcp_server import run_server
@@ -21,14 +26,26 @@ def index(settings: Settings) -> None:
         try:
             migrate(connection)
             result = import_sessions(connection, settings.sessions_path)
-            embedder = FastEmbedder(
+            model_id = embedding_model_id(
                 settings.embedding_model,
                 settings.model_path,
-                settings.embedding_dimension,
             )
-            embedded = embed_pending_messages(
-                connection, embedder, batch_size=settings.embedding_batch_size
-            )
+            if has_pending_messages(
+                connection, model_id, settings.embedding_dimension
+            ):
+                embedder = FastEmbedder(
+                    settings.embedding_model,
+                    settings.model_path,
+                    settings.embedding_dimension,
+                    model_id=model_id,
+                )
+                embedded = embed_pending_messages(
+                    connection,
+                    embedder,
+                    batch_size=settings.embedding_batch_size,
+                )
+            else:
+                embedded = 0
             print(
                 f"Indexed {result.messages_added} messages "
                 f"from {result.files_changed} changed files; "

@@ -25,10 +25,11 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _import_file(connection: sqlite3.Connection, source: SourceFile) -> tuple[int, int]:
-    checkpoint = connection.execute(
-        "SELECT * FROM import_files WHERE path = ?", (source.relative_path,)
-    ).fetchone()
+def _import_file(
+    connection: sqlite3.Connection,
+    source: SourceFile,
+    checkpoint: sqlite3.Row | None,
+) -> tuple[int, int]:
     if (
         checkpoint
         and checkpoint["identity"] == source.identity
@@ -46,29 +47,39 @@ def _import_file(connection: sqlite3.Connection, source: SourceFile) -> tuple[in
     offset = 0 if rebuild or checkpoint is None else checkpoint["offset_bytes"]
     line_number = 0 if rebuild or checkpoint is None else checkpoint["last_line"]
     added = errors = 0
-    with connection:
-        if rebuild:
-            connection.execute("DELETE FROM sessions WHERE source_path = ?", (source.relative_path,))
-        with source.path.open("rb") as handle:
-            handle.seek(offset)
-            while raw := handle.readline():
-                if not raw.endswith(b"\n"):
-                    handle.seek(-len(raw), 1)
-                    break
-                line_number += 1
-                try:
-                    parsed = parse_record(decode_line(raw), source.path, line_number)
-                except (UnicodeDecodeError, ValueError) as exc:
-                    errors += 1
-                    logger.warning(
-                        "Skipping malformed JSONL record %s:%d: %s",
-                        source.relative_path,
-                        line_number,
-                        exc,
-                    )
-                    continue
-                if parsed is None:
-                    continue
+    if rebuild:
+        connection.execute(
+            "DELETE FROM sessions WHERE source_path = ?", (source.relative_path,)
+        )
+    session_metadata: dict[str, tuple[str | None, str | None]] = {}
+    with source.path.open("rb") as handle:
+        handle.seek(offset)
+        while raw := handle.readline():
+            if not raw.endswith(b"\n"):
+                handle.seek(-len(raw), 1)
+                break
+            line_number += 1
+            try:
+                parsed = parse_record(decode_line(raw), source.path, line_number)
+            except (UnicodeDecodeError, ValueError) as exc:
+                errors += 1
+                logger.warning(
+                    "Skipping malformed JSONL record %s:%d: %s",
+                    source.relative_path,
+                    line_number,
+                    exc,
+                )
+                continue
+            if parsed is None:
+                continue
+            previous_metadata = session_metadata.get(parsed.session_id)
+            current_metadata = (parsed.project, parsed.cwd)
+            if previous_metadata is None or any(
+                value is not None and value != previous
+                for value, previous in zip(
+                    current_metadata, previous_metadata, strict=True
+                )
+            ):
                 imported_at = parsed.timestamp or _now()
                 connection.execute(
                     "INSERT INTO sessions(id, source_path, project, cwd, started_at, imported_at) VALUES (?, ?, ?, ?, ?, ?) "
@@ -82,68 +93,89 @@ def _import_file(connection: sqlite3.Connection, source: SourceFile) -> tuple[in
                         imported_at,
                     ),
                 )
-                content_hash = hashlib.sha256(parsed.text.encode()).hexdigest()
-                cursor = connection.execute(
-                    "INSERT OR IGNORE INTO messages(id, session_id, source_line, role, raw_type, timestamp, text, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                session_metadata[parsed.session_id] = tuple(
+                    value if value is not None else previous
+                    for value, previous in zip(
+                        current_metadata,
+                        previous_metadata or (None, None),
+                        strict=True,
+                    )
+                )
+            content_hash = hashlib.sha256(parsed.text.encode()).hexdigest()
+            cursor = connection.execute(
+                "INSERT OR IGNORE INTO messages(id, session_id, source_line, role, raw_type, timestamp, text, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    parsed.message_id,
+                    parsed.session_id,
+                    line_number,
+                    parsed.role,
+                    parsed.raw_type,
+                    parsed.timestamp,
+                    parsed.text,
+                    content_hash,
+                ),
+            )
+            added += cursor.rowcount
+            stored_message_id = parsed.message_id
+            if cursor.rowcount == 0:
+                stored = connection.execute(
+                    "SELECT id FROM messages WHERE id = ? OR "
+                    "(session_id = ? AND source_line = ? AND content_hash = ?)",
                     (
                         parsed.message_id,
                         parsed.session_id,
                         line_number,
-                        parsed.role,
-                        parsed.raw_type,
-                        parsed.timestamp,
-                        parsed.text,
                         content_hash,
                     ),
-                )
-                added += cursor.rowcount
-                stored_message_id = parsed.message_id
-                if cursor.rowcount == 0:
-                    stored = connection.execute(
-                        "SELECT id FROM messages WHERE id = ? OR "
-                        "(session_id = ? AND source_line = ? AND content_hash = ?)",
-                        (
-                            parsed.message_id,
-                            parsed.session_id,
-                            line_number,
-                            content_hash,
-                        ),
-                    ).fetchone()
-                    if stored is None:
-                        raise sqlite3.IntegrityError(
-                            "ignored message could not be resolved"
-                        )
-                    stored_message_id = stored["id"]
-                for path, operation in parsed.file_operations:
-                    connection.execute(
-                        "INSERT OR IGNORE INTO file_operations(message_id, path, operation) VALUES (?, ?, ?)",
-                        (stored_message_id, path, operation),
+                ).fetchone()
+                if stored is None:
+                    raise sqlite3.IntegrityError(
+                        "ignored message could not be resolved"
                     )
-            final_offset = handle.tell()
-        error_text = f"{errors} malformed record(s)" if errors else None
-        connection.execute(
-            "INSERT INTO import_files(path, identity, size_bytes, mtime_ns, offset_bytes, last_line, last_error, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
-            "ON CONFLICT(path) DO UPDATE SET identity=excluded.identity, size_bytes=excluded.size_bytes, mtime_ns=excluded.mtime_ns, offset_bytes=excluded.offset_bytes, last_line=excluded.last_line, last_error=excluded.last_error, updated_at=excluded.updated_at",
-            (source.relative_path, source.identity, source.size_bytes, source.mtime_ns, final_offset, line_number, error_text, _now()),
+                stored_message_id = stored["id"]
+            for path, operation in parsed.file_operations:
+                connection.execute(
+                    "INSERT OR IGNORE INTO file_operations(message_id, path, operation) VALUES (?, ?, ?)",
+                    (stored_message_id, path, operation),
+                )
+        final_offset = handle.tell()
+    error_text = f"{errors} malformed record(s)" if errors else None
+    connection.execute(
+        "INSERT INTO import_files(path, identity, size_bytes, mtime_ns, offset_bytes, last_line, last_error, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+        "ON CONFLICT(path) DO UPDATE SET identity=excluded.identity, size_bytes=excluded.size_bytes, mtime_ns=excluded.mtime_ns, offset_bytes=excluded.offset_bytes, last_line=excluded.last_line, last_error=excluded.last_error, updated_at=excluded.updated_at",
+        (
+            source.relative_path,
+            source.identity,
+            source.size_bytes,
+            source.mtime_ns,
+            final_offset,
+            line_number,
+            error_text,
+            _now(),
         )
+    )
     return added, errors
 
 
 def import_sessions(connection: sqlite3.Connection, root: Path) -> ImportResult:
     sources = discover(root)
+    checkpoints = {
+        row["path"]: row
+        for row in connection.execute("SELECT * FROM import_files").fetchall()
+    }
     changed = added = errors = 0
-    for source in sources:
-        checkpoint = connection.execute(
-            "SELECT identity, size_bytes, mtime_ns FROM import_files WHERE path = ?",
-            (source.relative_path,),
-        ).fetchone()
-        is_changed = not checkpoint or tuple(checkpoint) != (
-            source.identity,
-            source.size_bytes,
-            source.mtime_ns,
-        )
-        file_added, file_errors = _import_file(connection, source)
-        changed += int(is_changed)
-        added += file_added
-        errors += file_errors
+    with connection:
+        for source in sources:
+            checkpoint = checkpoints.get(source.relative_path)
+            is_changed = not checkpoint or (
+                checkpoint["identity"],
+                checkpoint["size_bytes"],
+                checkpoint["mtime_ns"],
+            ) != (source.identity, source.size_bytes, source.mtime_ns)
+            file_added, file_errors = _import_file(
+                connection, source, checkpoint
+            )
+            changed += int(is_changed)
+            added += file_added
+            errors += file_errors
     return ImportResult(len(sources), changed, added, errors)

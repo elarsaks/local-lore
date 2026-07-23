@@ -19,7 +19,8 @@ RUN mkdir -p /models \
     && uv run python -c "from fastembed import TextEmbedding; model=TextEmbedding(model_name='BAAI/bge-small-en-v1.5', cache_dir='/models'); list(model.embed(['offline model smoke test']))"
 
 COPY src ./src
-RUN uv sync --frozen --no-dev \
+RUN PYTHONPATH=/app/src uv run python -c "from pathlib import Path; from locallore.embeddings import MODEL_CHECKSUM_FILE, _directory_checksum; path=Path('/models'); (path / MODEL_CHECKSUM_FILE).write_text(_directory_checksum(path) + '\n')" \
+    && uv sync --frozen --no-dev \
     && mkdir -p /data /tmp/home \
     && chown -R 65532:65532 /data /tmp/home /models
 

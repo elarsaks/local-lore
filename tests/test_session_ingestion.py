@@ -3,6 +3,9 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+import pytest
+
+import locallore.importer
 from locallore.db import connect, migrate
 from locallore.discovery import discover
 from locallore.importer import import_sessions
@@ -84,3 +87,39 @@ def test_outside_session_symlinks_are_ignored(tmp_path: Path) -> None:
     outside.write_text("{}\n")
     (root / "linked.jsonl").symlink_to(outside)
     assert discover(root) == []
+
+
+def test_multi_file_import_is_atomic(tmp_path: Path, monkeypatch) -> None:
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    record = (
+        '{"sessionId":"%s","uuid":"%s","message":'
+        '{"role":"user","content":"message"}}\n'
+    )
+    (sessions / "first.jsonl").write_text(record % ("first", "first-message"))
+    (sessions / "second.jsonl").write_text(
+        record % ("second", "second-message")
+    )
+    connection = connect(tmp_path / "db.sqlite")
+    migrate(connection)
+    original = locallore.importer._import_file
+    calls = 0
+
+    def fail_second_file(connection, source, checkpoint):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("simulated import failure")
+        return original(connection, source, checkpoint)
+
+    monkeypatch.setattr(
+        locallore.importer, "_import_file", fail_second_file
+    )
+
+    with pytest.raises(RuntimeError, match="simulated import failure"):
+        import_sessions(connection, sessions)
+    assert connection.execute("SELECT count(*) FROM messages").fetchone()[0] == 0
+    assert (
+        connection.execute("SELECT count(*) FROM import_files").fetchone()[0]
+        == 0
+    )
