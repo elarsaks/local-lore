@@ -11,10 +11,6 @@ Ask about earlier work in natural language. LocalLore automatically searches
 indexed Claude Code history and synthesizes the relevant incident, fixes, and
 remaining context.
 
-![LocalLore recalling an earlier incident from Claude Code session history](docs/locallore-example.png)
-
-*Proprietary identifiers in this example have been redacted.*
-
 ## Requirements
 
 - Claude Code with plugin support
