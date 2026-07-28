@@ -81,12 +81,9 @@ def test_launcher_scripts_are_executable_and_use_strict_mode() -> None:
     for name in (
         "mcp-headers.sh",
         "install.sh",
-        "index.sh",
         "doctor.sh",
         "status.sh",
         "logs.sh",
-        "restart.sh",
-        "stop.sh",
         "uninstall.sh",
     ):
         script = ROOT / "scripts" / name

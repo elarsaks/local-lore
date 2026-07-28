@@ -60,17 +60,13 @@ embedding and interactive queries.
 ```bash
 ./scripts/status.sh
 ./scripts/logs.sh
-./scripts/index.sh
-./scripts/restart.sh
-./scripts/stop.sh
 ./scripts/doctor.sh
 ./scripts/uninstall.sh
 ```
 
-`index.sh` requests a daemon refresh. `stop.sh` preserves the SQLite volume.
-`uninstall.sh` asks for confirmation before deleting the container, derived
-index volume, runtime configuration, and bearer token; Claude session files are
-never deleted.
+Indexing runs automatically in the daemon. `uninstall.sh` asks for confirmation
+before deleting the container, derived index volume, runtime configuration, and
+bearer token; Claude session files are never deleted.
 
 Normal Claude sessions never launch a container, Python server, index pass, or
 model instance; they connect to the persistent HTTP daemon.
