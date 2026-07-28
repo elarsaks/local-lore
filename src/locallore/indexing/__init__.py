@@ -1,1 +1,0 @@
-"""Incremental session indexing."""
