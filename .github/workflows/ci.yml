@@ -127,7 +127,7 @@ jobs:
             --mount type=volume,source=locallore-ci-data,target=/data \
             --entrypoint /app/.venv/bin/python locallore-ci -c '
           from pathlib import Path
-          from locallore.db import connect
+          from locallore.storage.db import connect
           from locallore.embeddings import FastEmbedder
           from locallore.search import search_messages
           connection = connect(Path("/data/locallore.db"))
