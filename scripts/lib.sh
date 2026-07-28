@@ -1,9 +1,5 @@
 #!/bin/sh
 
-locallore_plugin_root() {
-  CDPATH= cd -- "$(dirname -- "$0")/.." && pwd
-}
-
 locallore_data_dir() {
   if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
     printf '%s\n' "$CLAUDE_PLUGIN_DATA"

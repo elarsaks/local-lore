@@ -110,9 +110,3 @@ claude plugin validate .
 `doctor.sh` checks configuration, migrations, FTS5, model inference, one running
 service container, loopback-only publication, bearer enforcement, and Host/Origin
 protection.
-
-The one-shot indexing profiler remains available:
-
-```bash
-uv run python benchmarks/profile_indexing.py
-```
