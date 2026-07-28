@@ -17,7 +17,10 @@ logger = logging.getLogger(__name__)
 class ImportResult:
     files_seen: int = 0
     files_changed: int = 0
+    files_added: int = 0
+    files_removed: int = 0
     messages_added: int = 0
+    messages_removed: int = 0
     errors: int = 0
 
 
@@ -29,14 +32,14 @@ def _import_file(
     connection: sqlite3.Connection,
     source: SourceFile,
     checkpoint: sqlite3.Row | None,
-) -> tuple[int, int]:
+) -> tuple[int, int, int]:
     if (
         checkpoint
         and checkpoint["identity"] == source.identity
         and checkpoint["size_bytes"] == source.size_bytes
         and checkpoint["mtime_ns"] == source.mtime_ns
     ):
-        return 0, 0
+        return 0, 0, 0
     rebuild = bool(
         checkpoint
         and (
@@ -46,8 +49,14 @@ def _import_file(
     )
     offset = 0 if rebuild or checkpoint is None else checkpoint["offset_bytes"]
     line_number = 0 if rebuild or checkpoint is None else checkpoint["last_line"]
-    added = errors = 0
+    added = errors = removed = 0
     if rebuild:
+        removed = connection.execute(
+            "SELECT count(*) FROM messages m "
+            "JOIN sessions s ON s.id = m.session_id "
+            "WHERE s.source_path = ?",
+            (source.relative_path,),
+        ).fetchone()[0]
         connection.execute(
             "DELETE FROM sessions WHERE source_path = ?", (source.relative_path,)
         )
@@ -154,7 +163,7 @@ def _import_file(
             _now(),
         )
     )
-    return added, errors
+    return added, errors, removed
 
 
 def import_sessions(connection: sqlite3.Connection, root: Path) -> ImportResult:
@@ -163,8 +172,24 @@ def import_sessions(connection: sqlite3.Connection, root: Path) -> ImportResult:
         row["path"]: row
         for row in connection.execute("SELECT * FROM import_files").fetchall()
     }
-    changed = added = errors = 0
+    changed = added = errors = files_added = 0
+    files_removed = messages_removed = 0
+    source_paths = {source.relative_path for source in sources}
     with connection:
+        missing_paths = sorted(set(checkpoints) - source_paths)
+        for path in missing_paths:
+            removed = connection.execute(
+                "SELECT count(*) FROM messages m "
+                "JOIN sessions s ON s.id = m.session_id "
+                "WHERE s.source_path = ?",
+                (path,),
+            ).fetchone()[0]
+            connection.execute(
+                "DELETE FROM sessions WHERE source_path = ?", (path,)
+            )
+            connection.execute("DELETE FROM import_files WHERE path = ?", (path,))
+            files_removed += 1
+            messages_removed += removed
         for source in sources:
             checkpoint = checkpoints.get(source.relative_path)
             is_changed = not checkpoint or (
@@ -172,10 +197,21 @@ def import_sessions(connection: sqlite3.Connection, root: Path) -> ImportResult:
                 checkpoint["size_bytes"],
                 checkpoint["mtime_ns"],
             ) != (source.identity, source.size_bytes, source.mtime_ns)
-            file_added, file_errors = _import_file(
+            if checkpoint is None:
+                files_added += 1
+            file_added, file_errors, file_removed_messages = _import_file(
                 connection, source, checkpoint
             )
             changed += int(is_changed)
             added += file_added
             errors += file_errors
-    return ImportResult(len(sources), changed, added, errors)
+            messages_removed += file_removed_messages
+    return ImportResult(
+        files_seen=len(sources),
+        files_changed=changed,
+        files_added=files_added,
+        files_removed=files_removed,
+        messages_added=added,
+        messages_removed=messages_removed,
+        errors=errors,
+    )

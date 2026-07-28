@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, Mapping, TypedDict
 
+from . import __version__
 from .db import SCHEMA_VERSION
 
 
@@ -16,9 +18,27 @@ class Status(TypedDict):
     embedding_model_id: str | None
     import_errors: list[str]
     runtime_network: str
+    daemon_version: str
+    uptime_seconds: float | None
+    refresh_state: str
+    last_refresh_started_at: str | None
+    last_refresh_completed_at: str | None
+    last_successful_refresh_at: str | None
+    last_refresh_duration_seconds: float | None
+    refresh_queued: bool
+    last_refresh_files_added: int
+    last_refresh_files_removed: int
+    last_refresh_messages_added: int
+    last_refresh_messages_removed: int
+    last_background_error: str | None
+    watcher_interval_seconds: float
+    transport: str
 
 
-def get_status(database_path: Path | None = None) -> Status:
+def get_status(
+    database_path: Path | None = None,
+    runtime_status: Mapping[str, Any] | None = None,
+) -> Status:
     sessions = messages = embedded_messages = 0
     embedding_model_id = None
     errors: list[str] = []
@@ -44,6 +64,27 @@ def get_status(database_path: Path | None = None) -> Status:
             "SELECT max(updated_at) FROM import_files"
         ).fetchone()[0]
         connection.close()
+    background: dict[str, Any] = {
+        "daemon_version": __version__,
+        "uptime_seconds": None,
+        "refresh_state": "idle",
+        "last_refresh_started_at": None,
+        "last_refresh_completed_at": None,
+        "last_successful_refresh_at": last_refresh,
+        "last_refresh_duration_seconds": None,
+        "refresh_queued": False,
+        "last_refresh_files_added": 0,
+        "last_refresh_files_removed": 0,
+        "last_refresh_messages_added": 0,
+        "last_refresh_messages_removed": 0,
+        "last_background_error": None,
+        "watcher_interval_seconds": float(
+            os.environ.get("LOCALLORE_WATCH_INTERVAL", "2")
+        ),
+        "transport": os.environ.get("LOCALLORE_TRANSPORT", "stdio"),
+    }
+    if runtime_status is not None:
+        background.update(runtime_status)
     return {
         "schema_version": SCHEMA_VERSION,
         "last_refresh": last_refresh,
@@ -52,5 +93,8 @@ def get_status(database_path: Path | None = None) -> Status:
         "embedded_messages": embedded_messages,
         "embedding_model_id": embedding_model_id,
         "import_errors": errors,
-        "runtime_network": "disabled by Docker Compose",
+        "runtime_network": os.environ.get(
+            "LOCALLORE_NETWORK_MODE", "not confirmed"
+        ),
+        **background,
     }

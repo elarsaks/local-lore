@@ -26,4 +26,5 @@ RUN PYTHONPATH=/app/src uv run python -c "from pathlib import Path; from locallo
 
 USER 65532:65532
 ENTRYPOINT ["/app/.venv/bin/python", "-m", "locallore"]
-CMD ["mcp"]
+EXPOSE 8000
+CMD ["serve"]

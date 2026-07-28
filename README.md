@@ -1,144 +1,119 @@
 # LocalLore
 
-LocalLore is an offline memory layer for Claude Code. It incrementally indexes
-local Claude Code session history and retrieves past work through `/remember`.
-SQLite FTS5 and an image-bundled sentence-embedding model provide hybrid search;
-the runtime container has no network interface.
-
-## Example
-
-Ask about earlier work in natural language. LocalLore automatically searches
-indexed Claude Code history and synthesizes the relevant incident, fixes, and
-remaining context.
+LocalLore is a private memory layer for Claude Code. One persistent local
+daemon incrementally indexes Claude Code session history and serves hybrid
+SQLite FTS5 and local-embedding search to every Claude session over authenticated
+MCP Streamable HTTP.
 
 ## Requirements
 
 - Claude Code with plugin support
 - Docker Desktop or Docker Engine with Docker Compose v2
-- A local Claude projects directory (normally `~/.claude/projects`)
+- A Claude projects directory, normally `~/.claude/projects`
 
-The first image build needs internet access to download pinned Python packages
-and the embedding model. Runtime use, indexing, diagnostics, and search are
-offline.
+The initial image build needs internet access for pinned Python packages and the
+embedding model. The model is bundled in the image and inference never falls
+back to a remote service.
 
-## Install
+## Install or update
 
-Clone this repository, validate it, build the image, and run the diagnostic:
-
-```bash
-claude plugin validate .
-CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/build.sh
-CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/doctor.sh
-```
-
-Then load the checkout for a Claude Code session:
+Run the same command for initial installation and every update:
 
 ```bash
-claude --plugin-dir .
+./scripts/install.sh
 ```
 
-Run `/mcp` to confirm that `locallore` is connected, then ask
-`/remember <question>`. The MCP server exposes only `locallore_status`,
-`locallore_search`, and `locallore_context`.
+Set a non-default session directory when needed:
+
+```bash
+CLAUDE_PROJECTS_DIR=/path/to/projects ./scripts/install.sh
+```
+
+For a non-default port, set the plugin's `port` option and rerun the installer
+from an environment that exposes the matching `CLAUDE_PLUGIN_OPTION_port`.
+
+The installer validates Docker and the session path, preserves or creates a
+mode-`0600` random bearer token, builds the image, starts the fixed
+`locallore` Compose project, waits for initial background indexing, and runs
+production health/security checks. Image builds and model downloads never occur
+during Claude startup.
+
+Load the checkout with `claude --plugin-dir .`. The plugin connects directly to
+`http://127.0.0.1:<port>/mcp`; its `headersHelper` supplies authentication
+automatically. If the installed daemon is absent, the helper starts the active
+image without rebuilding it.
+
+## Background indexing
+
+The daemon polls JSONL source metadata, debounces bursts, and queues work through
+one indexing worker. New, appended, completed-tail, truncated, replaced, renamed,
+and deleted sources are handled incrementally. Source deletion cascades through
+messages, file operations, full-text rows, and embeddings.
+
+SQLite WAL readers continue using the last committed index during refresh. A
+failed refresh records an error, keeps search available, and retries with bounded
+backoff. One lazy embedding model and one inference lock are shared by background
+embedding and interactive queries.
 
 ## Operations
 
-Indexing happens automatically before MCP startup. To refresh explicitly:
-
 ```bash
-CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/index.sh
+./scripts/status.sh
+./scripts/logs.sh
+./scripts/index.sh
+./scripts/restart.sh
+./scripts/stop.sh
+./scripts/doctor.sh
+./scripts/uninstall.sh
 ```
 
-The importer is incremental and safe to rerun. It rebuilds only a source file
-that was replaced or truncated. Malformed complete JSONL records are skipped,
-reported with their path and line number on stderr, and exposed by
-`locallore_status`; incomplete trailing records wait for the next refresh.
+`index.sh` requests a daemon refresh. `stop.sh` preserves the SQLite volume.
+`uninstall.sh` asks for confirmation before deleting the container, derived
+index volume, runtime configuration, and bearer token; Claude session files are
+never deleted.
 
-`./scripts/doctor.sh` verifies that the session mount is readable, the database
-volume is writable, migrations and FTS5 work, foreign keys are enabled, local
-model assets can run inference, and Compose supplied the offline-runtime marker.
-It exits nonzero with an actionable error when a check fails.
-
-## Upgrade
-
-Pull the desired release and rebuild while online:
-
-```bash
-git pull --ff-only
-CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/build.sh
-CLAUDE_PROJECTS_DIR="$HOME/.claude/projects" ./scripts/doctor.sh
-```
-
-The named `locallore-data` volume is retained and database migrations run at
-startup. Back up that volume before downgrading; older releases are not promised
-to understand newer schemas.
+The old `scripts/mcp.sh` stdio path remains only as a one-release diagnostic
+fallback. Normal Claude sessions never launch a container, Python server, index
+pass, or model instance.
 
 ## Privacy and security
 
-- Docker disables runtime networking with `network_mode: none`.
-- Session history is bind-mounted read-only; LocalLore never edits it.
-- The container filesystem is read-only, all Linux capabilities are dropped,
-  privilege escalation is disabled, processes are limited, and the container
-  runs as unprivileged UID/GID 65532.
-- Only the SQLite index persists in the `locallore-data` Docker volume.
-- There is no telemetry, crash reporting, remote model fallback, or API call.
-- Search inputs and outputs are bounded and arbitrary SQL is not exposed.
+- The MCP port is published only on `127.0.0.1`.
+- A random installation-scoped bearer token protects `/mcp`, `/statusz`, and
+  `/admin/refresh`; `/healthz` reveals only liveness.
+- Unexpected HTTP `Host` and browser `Origin` values are rejected.
+- Session history is bind-mounted read-only.
+- The container filesystem is read-only, runs as UID/GID 65532, drops all Linux
+  capabilities, forbids privilege escalation, limits PIDs, and uses bounded
+  `noexec` tmpfs storage.
+- The model is image-bundled and configured for local-files-only inference.
+- There is no telemetry, crash reporting, remote inference fallback, or exposed
+  arbitrary SQL.
 
-The index contains plaintext copies and embeddings of private conversation data.
-Anyone who can access the Docker volume can read it. LocalLore 0.1 does not
-provide encryption at rest; rely on host disk encryption and OS access controls.
+The Compose network is a standard user-defined bridge because Docker Desktop
+does not reliably publish host ports for `internal: true` networks. Consequently,
+the container technically has outbound network access. LocalLore itself does
+not make runtime network requests, but Docker-level egress isolation is not
+claimed. The bearer token and loopback binding protect the local HTTP endpoint.
 
-## Delete all indexed data
+The SQLite volume contains plaintext conversation text and embeddings. LocalLore
+does not provide encryption at rest; use host disk encryption and OS access
+controls.
 
-Find the Compose project and remove its volume (this is irreversible):
-
-```bash
-docker compose -f compose.yaml down --volumes
-```
-
-This removes the LocalLore Compose project's derived index volume, not Claude
-session files. The next launch creates and rebuilds an empty index.
-
-## Troubleshooting
-
-- **Docker command not found or daemon unavailable:** install/start Docker, then
-  confirm `docker compose version` succeeds.
-- **Session directory does not exist:** set `CLAUDE_PROJECTS_DIR` to the directory
-  containing Claude project session JSONL files.
-- **MCP disconnects during startup:** run `./scripts/doctor.sh`; diagnostics stay
-  on stderr so stdout remains valid MCP JSON-RPC.
-- **Embedding assets missing:** rebuild the image while online. Runtime downloads
-  are deliberately disabled.
-- **Old or missing results:** run `./scripts/index.sh`, then inspect
-  `locallore_status` for file-level import errors.
-- **Permission denied for the volume:** ensure Docker can create/write its named
-  volume; LocalLore intentionally runs as UID 65532.
-- **Build works but offline runtime does not:** use the supplied Compose launchers.
-  Directly running the image bypasses the enforced network and mount settings.
-
-## Validation and performance
-
-Run all deterministic unit, database, ingestion, keyword, semantic, MCP,
-security, doctor, and evaluation-contract tests:
+## Validation
 
 ```bash
 uv run pytest
+claude plugin validate .
+./scripts/doctor.sh
 ```
 
-The performance regression test measures hybrid search over 2,000 local vectors
-and guards both peak Python allocation and elapsed search time with deliberately
-generous CI thresholds. This provides a repeatable signal before considering a
-SQLite vector extension. The production model smoke test is performed by
-`doctor` inside the offline container.
+`doctor.sh` checks configuration, migrations, FTS5, model inference, one running
+service container, loopback-only publication, bearer enforcement, and Host/Origin
+protection.
 
-The indexing profiler can be run with:
+The one-shot indexing profiler remains available:
 
 ```bash
 uv run python benchmarks/profile_indexing.py
 ```
-
-See [docs/indexing-performance.md](docs/indexing-performance.md) for the
-profiling method, bottleneck analysis, and before/after startup measurements.
-
-See [RELEASE_NOTES.md](RELEASE_NOTES.md) for version 0.1.0 behavior,
-requirements, privacy limitations, and known issues.

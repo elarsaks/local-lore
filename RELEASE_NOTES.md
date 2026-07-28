@@ -1,48 +1,39 @@
-# LocalLore 0.1.0 Release Notes
+# LocalLore 0.2.0 Release Notes
 
-LocalLore 0.1.0 is the first release of an offline memory layer for Claude Code.
+LocalLore 0.2.0 replaces per-session stdio containers with one persistent,
+authenticated Streamable HTTP daemon.
 
-## User-visible behavior
+## Highlights
 
-- Incrementally indexes local Claude Code JSONL session history at MCP startup.
-- Provides `/remember <question>` for retrieving and synthesizing evidence from
-  earlier work.
-- Combines SQLite FTS5 keyword retrieval with locally computed semantic
-  embeddings.
-- Exposes bounded `locallore_status`, `locallore_search`, and
-  `locallore_context` MCP tools over stdio.
-- Preserves the derived SQLite index in a Docker volume while using ephemeral
-  runtime containers.
+- Any number of Claude Code sessions share one fixed `locallore` Compose service.
+- A health-first `headersHelper` reconnects or starts the installed image without
+  rebuilding or downgrading it.
+- JSONL changes are polled, debounced, and processed by one background worker.
+- Create, append, completed-tail, truncate, replace, rename, and deletion changes
+  are supported; deletion cascades through all derived index rows.
+- Searches use the last committed WAL snapshot during refresh.
+- One lazy embedding model and inference lock serve indexing and queries.
+- Status includes daemon uptime, transport, refresh state/timestamps, queue/error
+  state, watcher interval, and last-refresh add/remove counts.
+- Installation, update, status, logs, refresh, restart, stop, doctor, and
+  confirmed uninstall scripts all use the fixed Compose project.
 
-## Installation requirements
+## Security and networking
 
-- Claude Code with plugin support.
-- Docker Desktop or Docker Engine with Docker Compose v2.
-- Python 3.12 or newer for development and running the tests outside Docker.
-- A local Claude projects directory, normally `~/.claude/projects`.
-- Internet access for the initial image build so pinned dependencies and the
-  embedding model can be downloaded. Runtime use is offline.
+The HTTP endpoint is bound to `127.0.0.1`, protected by a random persistent
+bearer token, and rejects unexpected Host and browser Origin values. Existing
+read-only mounts, read-only root filesystem, unprivileged UID/GID, dropped
+capabilities, PID limit, `no-new-privileges`, and bounded tmpfs remain.
 
-See [README.md](README.md#install) for installation and validation commands.
+Docker Desktop did not expose a published host port from an `internal: true`
+network during the implementation spike. Version 0.2 therefore uses a standard
+bridge network, which enables outbound connectivity at the container boundary.
+LocalLore performs local-files-only model inference and contains no runtime
+network client or telemetry, but this release does not claim Docker-enforced
+egress isolation.
 
-## Privacy limitations
+## Compatibility
 
-- LocalLore copies session text and derived embeddings into an unencrypted
-  SQLite database in the `locallore-data` Docker volume.
-- Anyone with access to that volume can read the indexed content. LocalLore
-  relies on host disk encryption and operating-system access controls.
-- Source sessions are mounted read-only, and runtime networking is disabled.
-  There is no telemetry, remote inference fallback, or external API call.
-
-## Known issues and limitations
-
-- Version 0.1 indexes Claude Code session history only.
-- Indexing completes before the MCP server starts, so startup time grows with
-  the amount of new or changed history.
-- The first image build requires network access; model assets are bundled into
-  the resulting image for offline runtime use.
-- Encryption at rest is not provided.
-- Downgrading a database created by a newer release is not supported. Back up
-  the Docker volume before attempting a downgrade.
-- Search evidence reflects recorded discussions and actions; later work may
-  have superseded or reverted them.
+The three MCP tool names and input schemas are unchanged. The old stdio command
+remains as a diagnostic fallback for one release. Databases migrate in place and
+remain in the fixed `locallore_locallore-data` volume.

@@ -29,7 +29,10 @@ def settings(tmp_path: Path) -> Settings:
 def test_doctor_checks_runtime_prerequisites(tmp_path, monkeypatch) -> None:
     configured = settings(tmp_path)
     configured.database_path.parent.mkdir()
-    monkeypatch.setenv("LOCALLORE_NETWORK_MODE", "none")
+    monkeypatch.setenv(
+        "LOCALLORE_NETWORK_MODE",
+        "loopback-published Docker bridge; outbound access enabled",
+    )
     monkeypatch.setattr("locallore.doctor.FastEmbedder", FakeEmbedder)
 
     report = run_doctor(configured)
@@ -52,5 +55,5 @@ def test_doctor_requires_compose_offline_marker(tmp_path, monkeypatch) -> None:
     monkeypatch.delenv("LOCALLORE_NETWORK_MODE", raising=False)
     monkeypatch.setattr("locallore.doctor.FastEmbedder", FakeEmbedder)
 
-    with pytest.raises(DoctorError, match="cannot confirm the offline runtime"):
+    with pytest.raises(DoctorError, match="cannot confirm the Compose runtime"):
         run_doctor(configured)

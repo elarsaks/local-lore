@@ -8,5 +8,4 @@ locallore_require_docker
 exec docker compose -p locallore \
   --project-directory "$LOCALLORE_ACTIVE_ROOT" \
   --env-file "$LOCALLORE_RUNTIME_ENV" \
-  -f "$LOCALLORE_ACTIVE_ROOT/compose.yaml" exec -T locallore \
-  /app/.venv/bin/python -m locallore mcp
+  -f "$LOCALLORE_ACTIVE_ROOT/compose.yaml" logs "$@" locallore
