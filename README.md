@@ -72,9 +72,8 @@ embedding and interactive queries.
 index volume, runtime configuration, and bearer token; Claude session files are
 never deleted.
 
-The old `scripts/mcp.sh` stdio path remains only as a one-release diagnostic
-fallback. Normal Claude sessions never launch a container, Python server, index
-pass, or model instance.
+Normal Claude sessions never launch a container, Python server, index pass, or
+model instance; they connect to the persistent HTTP daemon.
 
 ## Privacy and security
 

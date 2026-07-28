@@ -34,6 +34,5 @@ egress isolation.
 
 ## Compatibility
 
-The three MCP tool names and input schemas are unchanged. The old stdio command
-remains as a diagnostic fallback for one release. Databases migrate in place and
-remain in the fixed `locallore_locallore-data` volume.
+The three MCP tool names and input schemas are unchanged. Databases migrate in
+place and remain in the fixed `locallore_locallore-data` volume.

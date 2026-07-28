@@ -41,7 +41,7 @@ def test_status_reports_an_empty_index_before_import() -> None:
     assert status["messages"] == 0
     assert status["import_errors"] == []
     assert status["runtime_network"] == "not confirmed"
-    assert status["transport"] == "stdio"
+    assert status["transport"] == "streamable-http"
     assert status["refresh_state"] == "idle"
 
 
@@ -79,7 +79,6 @@ def test_compose_is_loopback_only_and_protects_sessions() -> None:
 
 def test_launcher_scripts_are_executable_and_use_strict_mode() -> None:
     for name in (
-        "mcp.sh",
         "mcp-headers.sh",
         "install.sh",
         "build.sh",

@@ -16,7 +16,7 @@ from .embeddings import (
 )
 from .importer import import_sessions
 from .locking import acquire_index_lock
-from .mcp_server import run_http_server, run_server
+from .mcp_server import run_http_server
 from .status import get_status
 
 
@@ -58,9 +58,7 @@ def index(settings: Settings) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="locallore")
-    parser.add_argument(
-        "command", choices=("serve", "mcp", "index", "doctor")
-    )
+    parser.add_argument("command", choices=("serve", "index", "doctor"))
     args = parser.parse_args()
     logging.basicConfig(
         level=logging.INFO,
@@ -71,12 +69,9 @@ def main() -> None:
         settings = Settings.from_env()
         if args.command == "serve":
             run_http_server(settings)
-        elif args.command == "mcp":
-            index(settings)
-            run_server()
         elif args.command == "index":
             index(settings)
-        else:
+        elif args.command == "doctor":
             report = run_doctor(settings)
             for check in report.checks:
                 print(f"ok: {check}", file=sys.stderr)

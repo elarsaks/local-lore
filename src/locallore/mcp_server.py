@@ -3,7 +3,6 @@ from __future__ import annotations
 import hmac
 import logging
 from contextlib import asynccontextmanager
-from functools import lru_cache
 
 from mcp.server.auth.provider import AccessToken
 from mcp.server.auth.settings import AuthSettings
@@ -14,7 +13,6 @@ from starlette.responses import JSONResponse
 
 from .config import Settings
 from .db import connect
-from .embeddings import FastEmbedder
 from .runtime import LocalLoreRuntime
 from .search import get_context, search_messages
 from .status import Status, get_status
@@ -127,16 +125,6 @@ async def request_refresh(request: Request) -> JSONResponse:
     return JSONResponse({"queued": True}, status_code=202)
 
 
-@lru_cache(maxsize=1)
-def _fallback_embedder() -> FastEmbedder:
-    settings = Settings.from_env()
-    return FastEmbedder(
-        settings.embedding_model,
-        settings.model_path,
-        settings.embedding_dimension,
-    )
-
-
 @mcp.tool()
 def locallore_status() -> Status:
     """Report LocalLore index and offline-runtime status."""
@@ -159,14 +147,13 @@ def locallore_search(
 ) -> dict[str, object]:
     """Search indexed session history using full-text search and filters."""
     runtime = _runtime
-    embedder = (
-        runtime.search_embedder if runtime is not None else _fallback_embedder()
-    )
+    if runtime is None:
+        raise RuntimeError("LocalLore HTTP runtime is not ready")
     with connect(Settings.from_env().database_path) as connection:
         return search_messages(
             connection,
             query,
-            embedder=embedder,
+            embedder=runtime.search_embedder,
             project=project,
             after=after,
             before=before,
@@ -188,11 +175,6 @@ def locallore_context(
         return get_context(
             connection, session_id, message_id, before=before, after=after
         )
-
-
-def run_server() -> None:
-    """Serve the diagnostic compatibility transport over stdio."""
-    mcp.run(transport="stdio")
 
 
 def run_http_server(settings: Settings) -> None:

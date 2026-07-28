@@ -81,7 +81,7 @@ def get_status(
         "watcher_interval_seconds": float(
             os.environ.get("LOCALLORE_WATCH_INTERVAL", "2")
         ),
-        "transport": os.environ.get("LOCALLORE_TRANSPORT", "stdio"),
+        "transport": os.environ.get("LOCALLORE_TRANSPORT", "streamable-http"),
     }
     if runtime_status is not None:
         background.update(runtime_status)
