@@ -101,6 +101,7 @@ jobs:
       - name: Validate Compose configuration
         env:
           CLAUDE_PROJECTS_DIR: /tmp
+          LOCALLORE_TOKEN: ci-only-placeholder-token-not-used-at-runtime
         run: docker compose config --quiet
 
   offline-image:
