@@ -1,13 +1,12 @@
 #!/bin/sh
 set -eu
 
-PLUGIN_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-. "$PLUGIN_ROOT/scripts/lib.sh"
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/lib.sh"
 locallore_require_runtime
 locallore_require_docker
 
-PORT=$(locallore_env_value LOCALLORE_PORT "$LOCALLORE_RUNTIME_ENV")
-TOKEN=$(locallore_env_value LOCALLORE_TOKEN "$LOCALLORE_RUNTIME_ENV")
+PORT=$(locallore_port)
+TOKEN=$(locallore_token)
 curl -fsS --max-time 3 -X POST \
   -H "Authorization: Bearer $TOKEN" \
   "http://127.0.0.1:$PORT/admin/refresh"

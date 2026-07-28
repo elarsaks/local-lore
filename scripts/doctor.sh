@@ -1,15 +1,14 @@
 #!/bin/sh
 set -eu
 
-PLUGIN_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-. "$PLUGIN_ROOT/scripts/lib.sh"
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/lib.sh"
 locallore_require_runtime
 locallore_require_docker
 locallore_compose exec -T locallore \
   /app/.venv/bin/python -m locallore doctor
 
-PORT=$(locallore_env_value LOCALLORE_PORT "$LOCALLORE_RUNTIME_ENV")
-TOKEN=$(locallore_env_value LOCALLORE_TOKEN "$LOCALLORE_RUNTIME_ENV")
+PORT=$(locallore_port)
+TOKEN=$(locallore_token)
 container_ids=$(docker ps -q \
   --filter label=com.docker.compose.project=locallore \
   --filter label=com.docker.compose.service=locallore)

@@ -1,13 +1,12 @@
 #!/bin/sh
 set -eu
 
-PLUGIN_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-. "$PLUGIN_ROOT/scripts/lib.sh"
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/lib.sh"
 
 locallore_require_runtime
 
-PORT=$(locallore_env_value LOCALLORE_PORT "$LOCALLORE_RUNTIME_ENV")
-TOKEN=$(locallore_env_value LOCALLORE_TOKEN "$LOCALLORE_RUNTIME_ENV")
+PORT=$(locallore_port)
+TOKEN=$(locallore_token)
 IMAGE=$(locallore_env_value LOCALLORE_IMAGE "$LOCALLORE_RUNTIME_ENV")
 
 if curl -fsS --max-time 1 "http://127.0.0.1:$PORT/healthz" >/dev/null 2>&1; then

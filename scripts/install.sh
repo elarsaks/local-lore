@@ -1,8 +1,7 @@
 #!/bin/sh
 set -eu
 
-PLUGIN_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-. "$PLUGIN_ROOT/scripts/lib.sh"
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/lib.sh"
 
 locallore_require_docker
 
@@ -49,7 +48,7 @@ fi
 TEMP_ENV=$DATA_DIR/runtime.env.pending
 umask 077
 {
-  printf 'LOCALLORE_PLUGIN_ROOT=%s\n' "$PLUGIN_ROOT"
+  printf 'LOCALLORE_PLUGIN_ROOT=%s\n' "$LOCALLORE_PLUGIN_ROOT"
   printf 'LOCALLORE_IMAGE=locallore:%s\n' "$VERSION"
   printf 'LOCALLORE_ACTIVE_VERSION=%s\n' "$VERSION"
   printf 'LOCALLORE_TOKEN=%s\n' "$TOKEN"
@@ -63,7 +62,7 @@ chmod 600 "$TEMP_ENV"
 
 LOCALLORE_DATA_DIR=$DATA_DIR
 LOCALLORE_RUNTIME_ENV=$TEMP_ENV
-LOCALLORE_ACTIVE_ROOT=$PLUGIN_ROOT
+LOCALLORE_ACTIVE_ROOT=$LOCALLORE_PLUGIN_ROOT
 
 conflicts=$(docker ps -aq \
   --filter label=com.docker.compose.service=locallore \
@@ -99,5 +98,5 @@ if [ "$deadline" -le 0 ]; then
   exit 1
 fi
 
-"$PLUGIN_ROOT/scripts/doctor.sh"
+"$LOCALLORE_PLUGIN_ROOT/scripts/doctor.sh"
 echo "LocalLore is ready at http://127.0.0.1:$PORT/mcp"

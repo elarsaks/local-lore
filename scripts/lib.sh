@@ -1,5 +1,7 @@
 #!/bin/sh
 
+LOCALLORE_PLUGIN_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
 locallore_data_dir() {
   if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
     printf '%s\n' "$CLAUDE_PLUGIN_DATA"
@@ -22,6 +24,14 @@ locallore_env_value() {
   key=$1
   file=$2
   sed -n "s/^${key}=//p" "$file" | sed -n '1p'
+}
+
+locallore_port() {
+  locallore_env_value LOCALLORE_PORT "$LOCALLORE_RUNTIME_ENV"
+}
+
+locallore_token() {
+  locallore_env_value LOCALLORE_TOKEN "$LOCALLORE_RUNTIME_ENV"
 }
 
 locallore_require_runtime() {
@@ -49,6 +59,10 @@ locallore_compose() {
     --project-directory "$LOCALLORE_ACTIVE_ROOT" \
     --env-file "$LOCALLORE_RUNTIME_ENV" \
     -f "$LOCALLORE_ACTIVE_ROOT/compose.yaml" "$@"
+}
+
+locallore_compose_logs() {
+  locallore_compose logs "$@" locallore
 }
 
 locallore_require_docker() {
