@@ -6,54 +6,20 @@ import sqlite3
 import sys
 
 from .config import Settings
-from .db import connect, migrate
 from .doctor import DoctorError, run_doctor
-from .embeddings import (
-    FastEmbedder,
-    embed_pending_messages,
-    embedding_model_id,
-    has_pending_messages,
-)
-from .importer import import_sessions
-from .locking import acquire_index_lock
+from .indexing import update_index
 from .mcp_server import run_http_server
 from .status import get_status
 
 
 def index(settings: Settings) -> None:
-    with acquire_index_lock(settings.database_path):
-        connection = connect(settings.database_path)
-        try:
-            migrate(connection)
-            result = import_sessions(connection, settings.sessions_path)
-            model_id = embedding_model_id(
-                settings.embedding_model,
-                settings.model_path,
-            )
-            if has_pending_messages(
-                connection, model_id, settings.embedding_dimension
-            ):
-                embedder = FastEmbedder(
-                    settings.embedding_model,
-                    settings.model_path,
-                    settings.embedding_dimension,
-                    model_id=model_id,
-                )
-                embedded = embed_pending_messages(
-                    connection,
-                    embedder,
-                    batch_size=settings.embedding_batch_size,
-                )
-            else:
-                embedded = 0
-            print(
-                f"Indexed {result.messages_added} messages "
-                f"from {result.files_changed} changed files; "
-                f"embedded {embedded} messages",
-                file=sys.stderr,
-            )
-        finally:
-            connection.close()
+    result, embedded = update_index(settings)
+    print(
+        f"Indexed {result.messages_added} messages "
+        f"from {result.files_changed} changed files; "
+        f"embedded {embedded} messages",
+        file=sys.stderr,
+    )
 
 
 def main() -> None:

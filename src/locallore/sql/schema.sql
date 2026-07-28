@@ -1,3 +1,4 @@
+-- LocalLore SQLite schema.
 CREATE TABLE IF NOT EXISTS import_files (
     path TEXT PRIMARY KEY,
     identity TEXT,

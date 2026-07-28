@@ -2,13 +2,25 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .models import ParsedMessage
-
 
 _FILE_KEYS = ("file_path", "path", "filename")
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedMessage:
+    session_id: str
+    message_id: str
+    role: str
+    raw_type: str
+    timestamp: str | None
+    text: str
+    cwd: str | None
+    project: str | None
+    file_operations: tuple[tuple[str, str], ...] = ()
 
 
 def _file_operations(content: Any) -> tuple[tuple[str, str], ...]:

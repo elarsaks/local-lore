@@ -28,7 +28,7 @@ def test_index_skips_model_initialization_when_embeddings_are_current(
         raise AssertionError("embedding model should remain lazy")
 
     monkeypatch.setattr(
-        "locallore.__main__.FastEmbedder", fail_model_initialization
+        "locallore.indexing.FastEmbedder", fail_model_initialization
     )
 
     index(settings)

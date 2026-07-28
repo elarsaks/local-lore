@@ -26,7 +26,7 @@ def migrate(connection: sqlite3.Connection) -> None:
         "SELECT 1 FROM schema_migrations WHERE version = ?", (SCHEMA_VERSION,)
     ).fetchone()
     if applied is None:
-        schema = Path(__file__).with_name("schema.sql").read_text()
+        schema = Path(__file__).with_name("sql").joinpath("schema.sql").read_text()
         connection.executescript(schema)
         connection.execute(
             "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",

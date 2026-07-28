@@ -14,15 +14,9 @@ import numpy as np
 from .config import Settings
 from .db import connect, migrate
 from .discovery import discover
-from .embeddings import (
-    Embedder,
-    FastEmbedder,
-    embed_pending_messages,
-    embedding_model_id,
-    has_pending_messages,
-)
-from .importer import ImportResult, import_sessions
-from .locking import acquire_index_lock
+from .embeddings import Embedder, FastEmbedder, embedding_model_id
+from .indexing import update_index
+from .importer import ImportResult
 
 logger = logging.getLogger(__name__)
 
@@ -259,29 +253,7 @@ class LocalLoreRuntime:
             )
 
     def _refresh_once(self) -> tuple[ImportResult, int]:
-        with acquire_index_lock(self.settings.database_path):
-            connection = connect(self.settings.database_path)
-            try:
-                migrate(connection)
-                result = import_sessions(
-                    connection, self.settings.sessions_path
-                )
-                model_id = self.model_id
-                if has_pending_messages(
-                    connection,
-                    model_id,
-                    self.settings.embedding_dimension,
-                ):
-                    embedded = embed_pending_messages(
-                        connection,
-                        self.search_embedder,
-                        batch_size=self.settings.embedding_batch_size,
-                    )
-                else:
-                    embedded = 0
-                return result, embedded
-            finally:
-                connection.close()
+        return update_index(self.settings, embedder=self.search_embedder)
 
     def status(self) -> dict[str, object]:
         with self._state_lock:
