@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from .config import Settings
-from .db import connect, migrate
-from .embeddings import (
+from ..config import Settings
+from ..embeddings import (
     Embedder,
     FastEmbedder,
     embed_pending_messages,
     embedding_model_id,
     has_pending_messages,
 )
+from ..storage.db import connect, migrate
 from .importer import ImportResult, import_sessions
 from .locking import acquire_index_lock
 

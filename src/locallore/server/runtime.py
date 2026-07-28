@@ -11,12 +11,12 @@ from typing import Sequence
 
 import numpy as np
 
-from .config import Settings
-from .db import connect, migrate
-from .discovery import discover
-from .embeddings import Embedder, FastEmbedder, embedding_model_id
-from .indexing import update_index
-from .importer import ImportResult
+from ..config import Settings
+from ..embeddings import Embedder, FastEmbedder, embedding_model_id
+from ..indexing.discovery import discover
+from ..indexing.importer import ImportResult
+from ..indexing.pipeline import update_index
+from ..storage.db import connect, migrate
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,5 @@
+"""Coordinate indexing across processes."""
+
 from __future__ import annotations
 
 import fcntl

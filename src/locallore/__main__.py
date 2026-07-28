@@ -7,8 +7,8 @@ import sys
 
 from .config import Settings
 from .doctor import DoctorError, run_doctor
-from .indexing import update_index
-from .mcp_server import run_http_server
+from .indexing.pipeline import update_index
+from .server.mcp import run_http_server
 from .status import get_status
 
 

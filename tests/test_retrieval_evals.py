@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from locallore.db import connect, migrate
-from locallore.importer import import_sessions
+from locallore.indexing.importer import import_sessions
 from locallore.search import get_context, search_messages
+from locallore.storage.db import connect, migrate
 
 ROOT = Path(__file__).parents[1]
 SUITE_PATH = ROOT / "evals" / "retrieval.yaml"

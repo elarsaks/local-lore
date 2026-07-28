@@ -1,39 +1,24 @@
 from __future__ import annotations
 
-import hmac
 import logging
 from contextlib import asynccontextmanager
 
-from mcp.server.auth.provider import AccessToken
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from .config import Settings
-from .db import connect
+from ..config import Settings
+from ..search import get_context, search_messages
+from ..status import Status, get_status
+from ..storage.db import connect
+from .auth import LocalBearerTokenVerifier, is_authorized
 from .runtime import LocalLoreRuntime
-from .search import get_context, search_messages
-from .status import Status, get_status
 
 logger = logging.getLogger(__name__)
 
 _runtime: LocalLoreRuntime | None = None
-
-
-class LocalBearerTokenVerifier:
-    """Verify the installation-scoped local token in constant time."""
-
-    async def verify_token(self, token: str) -> AccessToken | None:
-        expected = Settings.from_env().bearer_token
-        if not expected or not hmac.compare_digest(token, expected):
-            return None
-        return AccessToken(
-            token=token,
-            client_id="locallore-local-client",
-            scopes=[],
-        )
 
 
 @asynccontextmanager
@@ -86,17 +71,6 @@ mcp = FastMCP(
 )
 
 
-def _authorized(request: Request) -> bool:
-    expected = Settings.from_env().bearer_token
-    value = request.headers.get("authorization", "")
-    prefix = "Bearer "
-    return bool(
-        expected
-        and value.startswith(prefix)
-        and hmac.compare_digest(value[len(prefix) :], expected)
-    )
-
-
 @mcp.custom_route("/healthz", methods=["GET"], include_in_schema=False)
 async def healthz(_request: Request) -> JSONResponse:
     """Return non-sensitive liveness after migration and listener startup."""
@@ -105,7 +79,7 @@ async def healthz(_request: Request) -> JSONResponse:
 
 @mcp.custom_route("/statusz", methods=["GET"], include_in_schema=False)
 async def statusz(request: Request) -> JSONResponse:
-    if not _authorized(request):
+    if not is_authorized(request):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
     runtime = _runtime
     status = get_status(
@@ -117,7 +91,7 @@ async def statusz(request: Request) -> JSONResponse:
 
 @mcp.custom_route("/admin/refresh", methods=["POST"], include_in_schema=False)
 async def request_refresh(request: Request) -> JSONResponse:
-    if not _authorized(request):
+    if not is_authorized(request):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
     if _runtime is None:
         return JSONResponse({"error": "runtime is not ready"}, status_code=503)

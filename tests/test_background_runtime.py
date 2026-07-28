@@ -8,8 +8,12 @@ from starlette.testclient import TestClient
 
 from locallore.config import Settings
 from locallore.embeddings import MODEL_CHECKSUM_FILE
-from locallore.mcp_server import LocalBearerTokenVerifier, mcp
-from locallore.runtime import LocalLoreRuntime, source_snapshot
+from locallore.server.auth import (
+    LocalBearerTokenVerifier,
+    bearer_token_matches,
+)
+from locallore.server.mcp import mcp
+from locallore.server.runtime import LocalLoreRuntime, source_snapshot
 
 
 def runtime_settings(tmp_path: Path) -> Settings:
@@ -75,7 +79,7 @@ def test_refresh_event_during_work_runs_one_follow_up(
         if calls == 1:
             first_started.set()
             release_first.wait(timeout=2)
-        from locallore.importer import ImportResult
+        from locallore.indexing.importer import ImportResult
 
         return ImportResult(), 0
 
@@ -111,7 +115,7 @@ def test_runtime_starts_ready_and_initializes_one_model(
             nonlocal initializations
             initializations += 1
 
-    monkeypatch.setattr("locallore.runtime.FastEmbedder", FakeEmbedder)
+    monkeypatch.setattr("locallore.server.runtime.FastEmbedder", FakeEmbedder)
 
     async def exercise() -> None:
         await runtime.start()
@@ -131,6 +135,8 @@ def test_local_bearer_auth_and_transport_security(
     monkeypatch.setenv("LOCALLORE_TOKEN", token)
     verifier = LocalBearerTokenVerifier()
 
+    assert bearer_token_matches(f"Bearer {token}", token)
+    assert not bearer_token_matches("Bearer wrong", token)
     assert asyncio.run(verifier.verify_token("wrong")) is None
     assert asyncio.run(verifier.verify_token(token)) is not None
 

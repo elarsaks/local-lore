@@ -1,3 +1,5 @@
+"""Parse Claude Code JSONL records."""
+
 from __future__ import annotations
 
 import hashlib

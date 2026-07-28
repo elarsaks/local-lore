@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping, TypedDict
 
 from . import __version__
-from .db import SCHEMA_VERSION
+from .storage.db import SCHEMA_VERSION
 
 
 class Status(TypedDict):

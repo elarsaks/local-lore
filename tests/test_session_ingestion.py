@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-import locallore.importer
-from locallore.db import connect, migrate
-from locallore.discovery import discover
-from locallore.importer import import_sessions
+import locallore.indexing.importer
+from locallore.indexing.discovery import discover
+from locallore.indexing.importer import import_sessions
+from locallore.storage.db import connect, migrate
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sessions"
 
@@ -133,7 +133,7 @@ def test_multi_file_import_is_atomic(tmp_path: Path, monkeypatch) -> None:
     )
     connection = connect(tmp_path / "db.sqlite")
     migrate(connection)
-    original = locallore.importer._import_file
+    original = locallore.indexing.importer._import_file
     calls = 0
 
     def fail_second_file(connection, source, checkpoint):
@@ -144,7 +144,7 @@ def test_multi_file_import_is_atomic(tmp_path: Path, monkeypatch) -> None:
         return original(connection, source, checkpoint)
 
     monkeypatch.setattr(
-        locallore.importer, "_import_file", fail_second_file
+        locallore.indexing.importer, "_import_file", fail_second_file
     )
 
     with pytest.raises(RuntimeError, match="simulated import failure"):

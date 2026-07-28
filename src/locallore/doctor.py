@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .config import Settings
-from .db import connect, migrate
 from .embeddings import FastEmbedder
+from .storage.db import connect, migrate
 
 
 class DoctorError(RuntimeError):

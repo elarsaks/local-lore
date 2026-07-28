@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-from locallore.mcp_server import locallore_status, mcp
+from locallore.server.mcp import locallore_status, mcp
 
 
 ROOT = Path(__file__).parents[1]

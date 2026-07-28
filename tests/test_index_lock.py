@@ -4,7 +4,7 @@ import multiprocessing
 import os
 from pathlib import Path
 
-from locallore.locking import acquire_index_lock, index_lock_path
+from locallore.indexing.locking import acquire_index_lock, index_lock_path
 
 
 def _hold_lock(

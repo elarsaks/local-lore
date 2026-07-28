@@ -7,7 +7,6 @@ from types import MappingProxyType
 import numpy as np
 import pytest
 
-from locallore.db import connect, migrate
 from locallore.embeddings import (
     MAX_EMBEDDING_CHARS,
     MODEL_CHECKSUM_FILE,
@@ -20,6 +19,7 @@ from locallore.embeddings import (
 )
 from locallore.search import _fuse_rankings, search_messages
 from locallore.status import get_status
+from locallore.storage.db import connect, migrate
 
 
 class FakeEmbedder:
