@@ -3,9 +3,12 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from locallore.db import connect, migrate
-from locallore.discovery import discover
-from locallore.importer import import_sessions
+import pytest
+
+import locallore.indexing.importer
+from locallore.indexing.discovery import discover
+from locallore.indexing.importer import import_sessions
+from locallore.storage.db import connect, migrate
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sessions"
 
@@ -73,8 +76,39 @@ def test_replaced_or_truncated_session_is_rebuilt(tmp_path: Path) -> None:
     import_sessions(connection, sessions)
     source = sessions / "project-a" / "session-1.jsonl"
     source.write_text(source.read_text().splitlines()[0] + "\n")
-    import_sessions(connection, sessions)
+    result = import_sessions(connection, sessions)
     assert connection.execute("SELECT count(*) FROM messages").fetchone()[0] == 1
+    assert result.messages_removed == 2
+
+
+def test_deleted_source_cascades_all_derived_rows(tmp_path: Path) -> None:
+    sessions = tmp_path / "sessions"
+    shutil.copytree(FIXTURES, sessions)
+    connection = connect(tmp_path / "db.sqlite")
+    migrate(connection)
+    import_sessions(connection, sessions)
+    connection.execute(
+        "INSERT INTO file_operations(message_id, path, operation) "
+        "VALUES ('message-1', 'src/example.py', 'edit')"
+    )
+    connection.execute(
+        "INSERT INTO embeddings(message_id, model_id, dimension, content_hash, vector) "
+        "SELECT id, 'fixture', 1, content_hash, ? FROM messages WHERE id = 'message-1'",
+        (b"\x00\x00\x80?",),
+    )
+    connection.commit()
+
+    (sessions / "project-a" / "session-1.jsonl").unlink()
+    result = import_sessions(connection, sessions)
+
+    assert result.files_removed == 1
+    assert result.messages_removed == 2
+    assert connection.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
+    assert connection.execute("SELECT count(*) FROM messages").fetchone()[0] == 0
+    assert connection.execute("SELECT count(*) FROM messages_fts").fetchone()[0] == 0
+    assert connection.execute("SELECT count(*) FROM file_operations").fetchone()[0] == 0
+    assert connection.execute("SELECT count(*) FROM embeddings").fetchone()[0] == 0
+    assert connection.execute("SELECT count(*) FROM import_files").fetchone()[0] == 0
 
 
 def test_outside_session_symlinks_are_ignored(tmp_path: Path) -> None:
@@ -84,3 +118,39 @@ def test_outside_session_symlinks_are_ignored(tmp_path: Path) -> None:
     outside.write_text("{}\n")
     (root / "linked.jsonl").symlink_to(outside)
     assert discover(root) == []
+
+
+def test_multi_file_import_is_atomic(tmp_path: Path, monkeypatch) -> None:
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    record = (
+        '{"sessionId":"%s","uuid":"%s","message":'
+        '{"role":"user","content":"message"}}\n'
+    )
+    (sessions / "first.jsonl").write_text(record % ("first", "first-message"))
+    (sessions / "second.jsonl").write_text(
+        record % ("second", "second-message")
+    )
+    connection = connect(tmp_path / "db.sqlite")
+    migrate(connection)
+    original = locallore.indexing.importer._import_file
+    calls = 0
+
+    def fail_second_file(connection, source, checkpoint):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("simulated import failure")
+        return original(connection, source, checkpoint)
+
+    monkeypatch.setattr(
+        locallore.indexing.importer, "_import_file", fail_second_file
+    )
+
+    with pytest.raises(RuntimeError, match="simulated import failure"):
+        import_sessions(connection, sessions)
+    assert connection.execute("SELECT count(*) FROM messages").fetchone()[0] == 0
+    assert (
+        connection.execute("SELECT count(*) FROM import_files").fetchone()[0]
+        == 0
+    )

@@ -7,9 +7,9 @@ from pathlib import Path
 
 import numpy as np
 
-from locallore.db import connect, migrate
 from locallore.embeddings import encode_vector
 from locallore.search import search_messages
+from locallore.storage.db import connect, migrate
 
 
 class FixedEmbedder:

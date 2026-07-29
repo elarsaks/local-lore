@@ -1,9 +1,10 @@
 services:
   locallore:
+    image: ${LOCALLORE_IMAGE:-locallore:0.2.0}
     build:
-      context: .
-    network_mode: none
-    stdin_open: true
+      context: ${LOCALLORE_PLUGIN_ROOT:-.}
+    container_name: locallore
+    restart: unless-stopped
     read_only: true
     user: "65532:65532"
     init: true
@@ -19,7 +20,16 @@ services:
       LOCALLORE_MODEL_PATH: /models
       LOCALLORE_EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
       LOCALLORE_EMBEDDING_DIMENSION: "384"
-      LOCALLORE_NETWORK_MODE: none
+      LOCALLORE_NETWORK_MODE: loopback-published Docker bridge; outbound access enabled
+      LOCALLORE_TRANSPORT: streamable-http
+      LOCALLORE_HTTP_HOST: 0.0.0.0
+      LOCALLORE_HTTP_PORT: "8000"
+      LOCALLORE_PORT: ${LOCALLORE_PORT:-8765}
+      LOCALLORE_TOKEN: ${LOCALLORE_TOKEN:?run scripts/install.sh to create runtime configuration}
+      LOCALLORE_ACTIVE_VERSION: ${LOCALLORE_ACTIVE_VERSION:-0.2.0}
+      LOCALLORE_WATCH_INTERVAL: ${LOCALLORE_WATCH_INTERVAL:-2}
+      LOCALLORE_IDLE_WATCH_INTERVAL: ${LOCALLORE_IDLE_WATCH_INTERVAL:-2}
+      LOCALLORE_WATCH_DEBOUNCE: ${LOCALLORE_WATCH_DEBOUNCE:-0.5}
     volumes:
       - type: bind
         source: ${CLAUDE_PROJECTS_DIR}
@@ -30,7 +40,25 @@ services:
         target: /data
     tmpfs:
       - /tmp:size=256m,uid=65532,gid=65532,noexec,nosuid,nodev
-    command: ["mcp"]
+    ports:
+      - "127.0.0.1:${LOCALLORE_PORT:-8765}:8000"
+    networks:
+      - locallore-local
+    healthcheck:
+      test:
+        - CMD
+        - /app/.venv/bin/python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2).read()"
+      interval: 2s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+    command: ["serve"]
 
 volumes:
   locallore-data:
+
+networks:
+  locallore-local:
+    driver: bridge

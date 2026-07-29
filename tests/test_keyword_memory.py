@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from locallore.db import connect, migrate
-from locallore.importer import import_sessions
+from locallore.indexing.importer import import_sessions
 from locallore.search import EXCERPT_LENGTH, get_context, search_messages
+from locallore.storage.db import connect, migrate
 
 
 def indexed_database(tmp_path: Path):

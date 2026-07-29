@@ -5,16 +5,21 @@ from pathlib import Path
 from types import MappingProxyType
 
 import numpy as np
+import pytest
 
-from locallore.db import connect, migrate
 from locallore.embeddings import (
     MAX_EMBEDDING_CHARS,
+    MODEL_CHECKSUM_FILE,
+    _directory_checksum,
     decode_vector,
     embed_pending_messages,
+    embedding_model_id,
     encode_vector,
+    has_pending_messages,
 )
 from locallore.search import _fuse_rankings, search_messages
 from locallore.status import get_status
+from locallore.storage.db import connect, migrate
 
 
 class FakeEmbedder:
@@ -95,6 +100,57 @@ def test_embedding_is_batched_idempotent_and_model_aware(tmp_path: Path) -> None
     status = get_status(tmp_path / "semantic.db")
     assert status["embedded_messages"] == 2
     assert status["embedding_model_id"] == "fake-v2"
+
+
+def test_pending_check_uses_model_and_content_identity(tmp_path: Path) -> None:
+    connection = semantic_database(tmp_path)
+
+    assert has_pending_messages(connection, "fake-v1", 3)
+    embedder = FakeEmbedder(
+        {
+            "Users cannot sign in after their credentials expire": [1, 0, 0],
+            "The schema migration is idempotent": [0, 1, 0],
+        }
+    )
+    embed_pending_messages(connection, embedder)
+    assert not has_pending_messages(connection, "fake-v1", 3)
+    assert has_pending_messages(connection, "fake-v2", 3)
+    assert has_pending_messages(connection, "fake-v1", 4)
+
+
+def test_precomputed_model_checksum_avoids_runtime_asset_reads(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    model_path = tmp_path / "model"
+    model_path.mkdir()
+    asset = model_path / "model.onnx"
+    asset.write_bytes(b"model assets")
+    checksum = _directory_checksum(model_path)
+    (model_path / MODEL_CHECKSUM_FILE).write_text(f"{checksum}\n")
+
+    original_open = Path.open
+
+    def guarded_open(path: Path, *args, **kwargs):
+        if path == asset:
+            raise AssertionError(
+                "model asset was read despite the checksum file"
+            )
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", guarded_open)
+
+    assert embedding_model_id("fixture", model_path) == (
+        f"fixture@sha256:{checksum}"
+    )
+
+
+def test_invalid_precomputed_model_checksum_is_rejected(tmp_path: Path) -> None:
+    model_path = tmp_path / "model"
+    model_path.mkdir()
+    (model_path / MODEL_CHECKSUM_FILE).write_text("not-a-checksum\n")
+
+    with pytest.raises(ValueError, match="invalid model checksum"):
+        embedding_model_id("fixture", model_path)
 
 
 def test_large_raw_content_is_not_embedded(tmp_path: Path) -> None:

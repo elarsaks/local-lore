@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from locallore.parser import parse_record
+from locallore.indexing.parser import parse_record
 
 
 def test_assistant_message_text_is_extracted_from_content_blocks() -> None:

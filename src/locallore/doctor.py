@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .config import Settings
-from .db import connect, migrate
 from .embeddings import FastEmbedder
+from .storage.db import connect, migrate
 
 
 class DoctorError(RuntimeError):
@@ -69,9 +69,13 @@ def run_doctor(settings: Settings) -> DoctorReport:
         raise DoctorError(f"embedding model returned unexpected shape {vector.shape}")
     checks.append("local embedding assets and inference are ready")
 
-    if os.environ.get("LOCALLORE_NETWORK_MODE") != "none":
+    network_mode = os.environ.get("LOCALLORE_NETWORK_MODE", "")
+    if "loopback-published Docker bridge" not in network_mode:
         raise DoctorError(
-            "cannot confirm the offline runtime; run doctor through scripts/doctor.sh"
+            "cannot confirm the Compose runtime; run doctor through scripts/doctor.sh"
         )
-    checks.append("Compose declares the runtime network disabled")
+    checks.append(
+        "Compose declares a loopback-published bridge "
+        "(outbound access remains enabled)"
+    )
     return DoctorReport(tuple(checks))

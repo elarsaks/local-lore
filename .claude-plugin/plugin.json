@@ -2,8 +2,31 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "locallore",
   "description": "Offline local memory for Claude Code sessions",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Elar Saks"
+  },
+  "mcpServers": {
+    "locallore": {
+      "type": "http",
+      "url": "http://127.0.0.1:${user_config.port}/mcp",
+      "headersHelper": "\"${CLAUDE_PLUGIN_ROOT}/scripts/mcp-headers.sh\""
+    }
+  },
+  "userConfig": {
+    "port": {
+      "type": "number",
+      "title": "LocalLore port",
+      "description": "Loopback TCP port used by the persistent LocalLore daemon",
+      "default": 8765,
+      "min": 1024,
+      "max": 65535
+    },
+    "projects_directory": {
+      "type": "directory",
+      "title": "Claude projects directory",
+      "description": "Directory containing Claude Code project session JSONL files",
+      "default": "~/.claude/projects"
+    }
   }
 }
