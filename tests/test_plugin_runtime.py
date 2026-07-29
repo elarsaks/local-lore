@@ -94,8 +94,8 @@ def test_launcher_scripts_are_executable_and_use_strict_mode() -> None:
 
 
 def test_mcp_configuration_uses_http_and_dynamic_headers() -> None:
-    config = json.loads((ROOT / ".mcp.json").read_text())
-    server = config["mcpServers"]["locallore"]
+    manifest = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+    server = manifest["mcpServers"]["locallore"]
 
     assert server["type"] == "http"
     assert server["url"] == "http://127.0.0.1:${user_config.port}/mcp"

@@ -6,6 +6,13 @@
   "author": {
     "name": "Elar Saks"
   },
+  "mcpServers": {
+    "locallore": {
+      "type": "http",
+      "url": "http://127.0.0.1:${user_config.port}/mcp",
+      "headersHelper": "\"${CLAUDE_PLUGIN_ROOT}/scripts/mcp-headers.sh\""
+    }
+  },
   "userConfig": {
     "port": {
       "type": "number",
