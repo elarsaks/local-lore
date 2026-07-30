@@ -9,7 +9,7 @@ DATA_DIR=$(locallore_data_dir)
 RUNTIME_ENV=$DATA_DIR/runtime.env
 SESSIONS_DIR=${CLAUDE_PLUGIN_OPTION_projects_directory:-${CLAUDE_PROJECTS_DIR:-${HOME}/.claude/projects}}
 PORT=${CLAUDE_PLUGIN_OPTION_port:-${LOCALLORE_PORT:-8765}}
-VERSION=0.2.0
+VERSION=0.3.0
 
 case "$SESSIONS_DIR" in
   "~/"*) SESSIONS_DIR=$HOME/${SESSIONS_DIR#\~/} ;;
