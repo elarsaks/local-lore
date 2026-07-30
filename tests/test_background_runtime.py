@@ -65,7 +65,8 @@ def test_snapshot_detects_all_portable_source_changes(tmp_path: Path) -> None:
 
 
 def test_refresh_event_during_work_runs_one_follow_up(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     settings = runtime_settings(tmp_path)
     runtime = LocalLoreRuntime(settings)
@@ -104,7 +105,8 @@ def test_refresh_event_during_work_runs_one_follow_up(
 
 
 def test_runtime_starts_ready_and_initializes_one_model(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     settings = runtime_settings(tmp_path)
     runtime = LocalLoreRuntime(settings)
@@ -146,11 +148,17 @@ def test_local_bearer_auth_and_transport_security(
     ) as client:
         assert client.post("/mcp", json={}).status_code == 401
         auth = {"Authorization": f"Bearer {token}"}
-        assert client.post(
-            "/mcp", json={}, headers={**auth, "Host": "evil.example"}
-        ).status_code == 421
-        assert client.post(
-            "/mcp",
-            json={},
-            headers={**auth, "Origin": "https://evil.example"},
-        ).status_code == 403
+        assert (
+            client.post(
+                "/mcp", json={}, headers={**auth, "Host": "evil.example"}
+            ).status_code
+            == 421
+        )
+        assert (
+            client.post(
+                "/mcp",
+                json={},
+                headers={**auth, "Origin": "https://evil.example"},
+            ).status_code
+            == 403
+        )

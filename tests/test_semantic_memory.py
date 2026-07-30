@@ -94,9 +94,12 @@ def test_embedding_is_batched_idempotent_and_model_aware(tmp_path: Path) -> None
 
     replacement = FakeEmbedder(texts, model_id="fake-v2")
     assert embed_pending_messages(connection, replacement, batch_size=8) == 2
-    assert connection.execute(
-        "SELECT count(*) FROM embeddings WHERE model_id = 'fake-v2'"
-    ).fetchone()[0] == 2
+    assert (
+        connection.execute(
+            "SELECT count(*) FROM embeddings WHERE model_id = 'fake-v2'"
+        ).fetchone()[0]
+        == 2
+    )
     status = get_status(tmp_path / "semantic.db")
     assert status["embedded_messages"] == 2
     assert status["embedding_model_id"] == "fake-v2"
@@ -119,7 +122,8 @@ def test_pending_check_uses_model_and_content_identity(tmp_path: Path) -> None:
 
 
 def test_precomputed_model_checksum_avoids_runtime_asset_reads(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     model_path = tmp_path / "model"
     model_path.mkdir()
@@ -132,16 +136,12 @@ def test_precomputed_model_checksum_avoids_runtime_asset_reads(
 
     def guarded_open(path: Path, *args, **kwargs):
         if path == asset:
-            raise AssertionError(
-                "model asset was read despite the checksum file"
-            )
+            raise AssertionError("model asset was read despite the checksum file")
         return original_open(path, *args, **kwargs)
 
     monkeypatch.setattr(Path, "open", guarded_open)
 
-    assert embedding_model_id("fixture", model_path) == (
-        f"fixture@sha256:{checksum}"
-    )
+    assert embedding_model_id("fixture", model_path) == (f"fixture@sha256:{checksum}")
 
 
 def test_invalid_precomputed_model_checksum_is_rejected(tmp_path: Path) -> None:
@@ -160,14 +160,13 @@ def test_large_raw_content_is_not_embedded(tmp_path: Path) -> None:
         "UPDATE messages SET text = ?, content_hash = ? WHERE id = 'login'",
         (large_text, hashlib.sha256(large_text.encode()).hexdigest()),
     )
-    embedder = FakeEmbedder(
-        {"The schema migration is idempotent": [0, 1, 0]}
-    )
+    embedder = FakeEmbedder({"The schema migration is idempotent": [0, 1, 0]})
 
     assert embed_pending_messages(connection, embedder) == 1
-    assert connection.execute(
-        "SELECT message_id FROM embeddings"
-    ).fetchone()[0] == "database"
+    assert (
+        connection.execute("SELECT message_id FROM embeddings").fetchone()[0]
+        == "database"
+    )
 
 
 def test_semantic_query_retrieves_paraphrase_without_keyword_overlap(

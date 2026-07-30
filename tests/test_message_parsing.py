@@ -5,7 +5,14 @@ from locallore.indexing.parser import parse_record
 
 def test_assistant_message_text_is_extracted_from_content_blocks() -> None:
     parsed = parse_record(
-        {"sessionId": "s", "extra": True, "message": {"role": "assistant", "content": [{"type": "text", "text": "hello"}]}},
+        {
+            "sessionId": "s",
+            "extra": True,
+            "message": {
+                "role": "assistant",
+                "content": [{"type": "text", "text": "hello"}],
+            },
+        },
         Path("session.jsonl"),
         1,
     )

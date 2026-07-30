@@ -23,7 +23,7 @@ class Settings:
     runtime_version: str = "0.2.0"
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         return cls(
             database_path=Path(os.environ.get("LOCALLORE_DB", "/data/locallore.db")),
             sessions_path=Path(os.environ.get("LOCALLORE_SESSIONS", "/sessions")),
@@ -31,8 +31,12 @@ class Settings:
             embedding_model=os.environ.get(
                 "LOCALLORE_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"
             ),
-            embedding_dimension=int(os.environ.get("LOCALLORE_EMBEDDING_DIMENSION", "384")),
-            embedding_batch_size=int(os.environ.get("LOCALLORE_EMBEDDING_BATCH_SIZE", "64")),
+            embedding_dimension=int(
+                os.environ.get("LOCALLORE_EMBEDDING_DIMENSION", "384")
+            ),
+            embedding_batch_size=int(
+                os.environ.get("LOCALLORE_EMBEDDING_BATCH_SIZE", "64")
+            ),
             http_host=os.environ.get("LOCALLORE_HTTP_HOST", "0.0.0.0"),
             http_port=int(os.environ.get("LOCALLORE_HTTP_PORT", "8000")),
             public_port=int(os.environ.get("LOCALLORE_PORT", "8765")),
@@ -41,8 +45,6 @@ class Settings:
             watcher_idle_interval=float(
                 os.environ.get("LOCALLORE_IDLE_WATCH_INTERVAL", "2")
             ),
-            watcher_debounce=float(
-                os.environ.get("LOCALLORE_WATCH_DEBOUNCE", "0.5")
-            ),
+            watcher_debounce=float(os.environ.get("LOCALLORE_WATCH_DEBOUNCE", "0.5")),
             runtime_version=os.environ.get("LOCALLORE_ACTIVE_VERSION", "0.2.0"),
         )

@@ -14,15 +14,10 @@ def indexed_database(tmp_path: Path):
     sessions = tmp_path / "sessions" / "alpha"
     sessions.mkdir(parents=True)
     (sessions / "history.jsonl").write_text(
-        '\n'.join(
-            (
-                '{"type":"user","sessionId":"s1","uuid":"m1","timestamp":"2026-01-01T10:00:00Z","project":"alpha","message":{"role":"user","content":"Why remove the HTTP transport?"}}',
-                '{"type":"assistant","sessionId":"s1","uuid":"m2","timestamp":"2026-01-01T10:01:00Z","project":"alpha","message":{"role":"assistant","content":[{"type":"text","text":"We removed the HTTP transport to keep the runtime offline."},{"type":"tool_use","name":"Edit","input":{"file_path":"compose.yaml"}}]}}',
-                '{"type":"user","sessionId":"s1","uuid":"m3","timestamp":"2026-01-01T10:02:00Z","project":"alpha","message":{"role":"user","content":"Unrelated deployment note"}}',
-                '{"type":"assistant","sessionId":"s2","uuid":"m4","timestamp":"2025-01-01T10:00:00Z","project":"beta","message":{"role":"assistant","content":"HTTP transport remains enabled here."}}',
-            )
-        )
-        + '\n'
+        '{"type":"user","sessionId":"s1","uuid":"m1","timestamp":"2026-01-01T10:00:00Z","project":"alpha","message":{"role":"user","content":"Why remove the HTTP transport?"}}\n'
+        '{"type":"assistant","sessionId":"s1","uuid":"m2","timestamp":"2026-01-01T10:01:00Z","project":"alpha","message":{"role":"assistant","content":[{"type":"text","text":"We removed the HTTP transport to keep the runtime offline."},{"type":"tool_use","name":"Edit","input":{"file_path":"compose.yaml"}}]}}\n'
+        '{"type":"user","sessionId":"s1","uuid":"m3","timestamp":"2026-01-01T10:02:00Z","project":"alpha","message":{"role":"user","content":"Unrelated deployment note"}}\n'
+        '{"type":"assistant","sessionId":"s2","uuid":"m4","timestamp":"2025-01-01T10:00:00Z","project":"beta","message":{"role":"assistant","content":"HTTP transport remains enabled here."}}\n'
     )
     connection = connect(tmp_path / "locallore.db")
     migrate(connection)
@@ -54,7 +49,9 @@ def test_search_applies_structured_filters(tmp_path: Path) -> None:
 
 def test_search_bounds_excerpts(tmp_path: Path) -> None:
     connection = indexed_database(tmp_path)
-    connection.execute("UPDATE messages SET text = ? WHERE id = 'm2'", ("HTTP " * 1000,))
+    connection.execute(
+        "UPDATE messages SET text = ? WHERE id = 'm2'", ("HTTP " * 1000,)
+    )
     response = search_messages(connection, "HTTP", limit=1000)
     assert len(response["results"][0]["excerpt"]) == EXCERPT_LENGTH
 
@@ -85,7 +82,10 @@ def test_rebuilding_source_removes_stale_fts_rows(tmp_path: Path) -> None:
     )
     import_sessions(connection, tmp_path / "sessions")
     assert search_messages(connection, "HTTP")["results"] == []
-    assert search_messages(connection, "replacement")["results"][0]["message_id"] == "replacement"
+    assert (
+        search_messages(connection, "replacement")["results"][0]["message_id"]
+        == "replacement"
+    )
 
 
 def test_file_operation_uses_existing_id_for_logically_duplicate_message(

@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 ROOT = Path(__file__).parents[1]
 EVAL_PATH = ROOT / "evals" / "remember.yaml"
 REQUIRED_BEHAVIORS = {
@@ -31,9 +30,7 @@ def test_remember_eval_suite_has_unique_cases_and_complete_coverage() -> None:
     cases = load_eval_cases()
     case_ids = [case["id"] for case in cases]
     covered_behaviors = {
-        behavior
-        for case in cases
-        for behavior in case["expected"]["behaviors"]
+        behavior for case in cases for behavior in case["expected"]["behaviors"]
     }
 
     assert len(cases) >= 6
@@ -72,4 +69,3 @@ def test_remember_surfaces_encode_the_eval_contract() -> None:
     )
     for phrase in required_language:
         assert phrase in surfaces
-
