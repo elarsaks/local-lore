@@ -1,7 +1,9 @@
 #!/bin/sh
 set -eu
 
-. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/lib.sh"
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 locallore_require_docker
 
@@ -12,7 +14,7 @@ PORT=${CLAUDE_PLUGIN_OPTION_port:-${LOCALLORE_PORT:-8765}}
 VERSION=0.3.0
 
 case "$SESSIONS_DIR" in
-  "~/"*) SESSIONS_DIR=$HOME/${SESSIONS_DIR#\~/} ;;
+  \~/*) SESSIONS_DIR=$HOME/${SESSIONS_DIR#\~/} ;;
 esac
 
 case "$PORT" in
@@ -60,8 +62,12 @@ umask 077
 } >"$TEMP_ENV"
 chmod 600 "$TEMP_ENV"
 
+# These variables are read by the Compose helpers sourced from lib.sh.
+# shellcheck disable=SC2034
 LOCALLORE_DATA_DIR=$DATA_DIR
+# shellcheck disable=SC2034
 LOCALLORE_RUNTIME_ENV=$TEMP_ENV
+# shellcheck disable=SC2034
 LOCALLORE_ACTIVE_ROOT=$LOCALLORE_PLUGIN_ROOT
 
 conflicts=$(docker ps -aq \

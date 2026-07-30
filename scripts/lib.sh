@@ -1,6 +1,8 @@
 #!/bin/sh
 
-LOCALLORE_PLUGIN_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+# Read by every lifecycle script that sources this library.
+# shellcheck disable=SC2034
+LOCALLORE_PLUGIN_ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 
 locallore_data_dir() {
   if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
