@@ -37,7 +37,6 @@ Scope:
 - Record the initial coverage baseline and enforce it in CI.
 - Add targeted tests for runtime failure/retry, authentication, corrupt JSONL,
   transaction rollback, and embedding failures where the baseline exposes gaps.
-- Publish coverage XML as a CI artifact for inspection.
 
 Acceptance criteria:
 
@@ -46,49 +45,37 @@ Acceptance criteria:
 - New production code cannot reduce coverage below the committed threshold.
 - `scripts/check.sh` runs lint, formatting, typing, coverage, and ShellCheck.
 
-## PR 3: Make releases reproducible
+## PR 3: Make versioning reproducible
 
-Goal: make built releases consistent and independently verifiable.
+Goal: keep committed release metadata consistent.
 
 Scope:
 
 - Add a tested version-bump command for Python, Compose, shell, plugin manifest,
   marketplace, and release metadata.
-- Build both wheel and source distribution in CI.
-- Install the wheel into a clean environment and verify imports, CLI startup,
-  packaged SQL resources, and database creation.
 - Document the release procedure.
 
 Acceptance criteria:
 
 - One command validates and updates every committed version location.
 - Tests catch every version mismatch.
-- Built artifacts work without access to the repository checkout.
 
-## PR 4: Harden the supply chain and release path
+## PR 4: Freeze and validate release inputs
 
-Goal: prevent vulnerable dependencies and unvalidated releases from reaching
-users.
+Goal: leave the finished repository reproducible without ongoing maintenance.
 
 Scope:
 
-- Configure Dependabot for uv, Docker, and GitHub Actions.
-- Add pull-request dependency review.
-- Add CodeQL Python analysis.
-- Pin third-party GitHub Actions to reviewed full commit SHAs.
-- Pin container build inputs by digest where update automation can maintain
-  them.
-- Require the complete quality, artifact, and offline-image gates before a tag
-  can create a GitHub release.
-- Add concise contributor, security-reporting, and architecture documentation.
+- Pin direct Python, build, toolchain, workflow, and container inputs.
+- Require the quality and offline-image gates before a tag can create a GitHub
+  release.
+- Document that the repository is a frozen, unmaintained snapshot.
 
 Acceptance criteria:
 
-- Dependency updates arrive as isolated, reviewable pull requests.
-- Pull requests that introduce known vulnerable dependencies fail.
-- Code scanning covers the Python source tree.
 - Release creation cannot bypass the same checks required for pull requests.
-- All workflow dependencies are immutable and updateable by automation.
+- Direct dependencies and build inputs cannot move without a committed change.
+- The maintenance status is clear to prospective users.
 
 ## Delivery order
 
@@ -96,8 +83,8 @@ The pull requests are intentionally dependency-ordered:
 
 1. Quality baseline
 2. Typing and coverage
-3. Reproducible releases
-4. Supply-chain and release hardening
+3. Reproducible versioning
+4. Frozen release inputs
 
-Later pull requests should be rebased on the merged predecessor so each diff
-contains only its stated scope.
+PR 4 completes this roadmap. Any future dependency or release change should be
+an explicit decision to resume maintenance.

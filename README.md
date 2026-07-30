@@ -5,6 +5,9 @@ daemon incrementally indexes Claude Code session history and serves hybrid
 SQLite FTS5 and local-embedding search to every Claude session over authenticated
 MCP Streamable HTTP.
 
+This repository is a finished, pinned snapshot and is not actively maintained.
+Review its locked dependencies and security assumptions before adopting it.
+
 ## Requirements
 
 - Claude Code with plugin support

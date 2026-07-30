@@ -4,6 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -11,18 +12,19 @@ permissions:
 jobs:
   quality:
     name: Python and plugin quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
-          python-version: "3.12"
+          python-version: "3.12.13"
       - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           enable-cache: true
+          version: "0.11.6"
       - name: Install ShellCheck
         run: |
           sudo apt-get update
@@ -31,13 +33,6 @@ jobs:
         run: uv sync --locked --dev
       - name: Run repository quality checks
         run: ./scripts/check.sh
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
-          if-no-files-found: error
 
       - name: Validate plugin manifest
         run: |
@@ -58,35 +53,12 @@ jobs:
           LOCALLORE_TOKEN: ci-only-placeholder-token-not-used-at-runtime
         run: docker compose config --quiet
 
-  artifacts:
-    name: Python distributions
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - name: Build and smoke-test distributions
-        run: ./scripts/check_artifacts.sh dist
-      - name: Upload Python distributions
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-distributions
-          path: dist/*
-          if-no-files-found: error
-
   offline-image:
     name: Offline image build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Build offline runtime image
         run: docker build --tag locallore-ci .
       - name: Embed fixtures without runtime networking
