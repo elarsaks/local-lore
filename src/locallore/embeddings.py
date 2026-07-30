@@ -4,12 +4,14 @@ import hashlib
 import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, cast
 
 import numpy as np
+from numpy.typing import NDArray
 
 MAX_EMBEDDING_CHARS = 8000
 MODEL_CHECKSUM_FILE = ".locallore-model.sha256"
+FloatArray = NDArray[np.float32]
 
 
 class Embedder(Protocol):
@@ -19,16 +21,16 @@ class Embedder(Protocol):
     @property
     def dimension(self) -> int: ...
 
-    def encode(self, texts: Sequence[str]) -> np.ndarray: ...
+    def encode(self, texts: Sequence[str]) -> FloatArray: ...
 
-    def encode_query(self, query: str) -> np.ndarray: ...
+    def encode_query(self, query: str) -> FloatArray: ...
 
 
-def encode_vector(vector: np.ndarray) -> bytes:
+def encode_vector(vector: FloatArray) -> bytes:
     return np.asarray(vector, dtype="<f4").tobytes(order="C")
 
 
-def decode_vector(value: bytes, dimension: int) -> np.ndarray:
+def decode_vector(value: bytes, dimension: int) -> FloatArray:
     vector = np.frombuffer(value, dtype="<f4")
     if vector.size != dimension:
         raise ValueError(
@@ -91,7 +93,7 @@ class FastEmbedder:
     def dimension(self) -> int:
         return self._dimension
 
-    def encode(self, texts: Sequence[str]) -> np.ndarray:
+    def encode(self, texts: Sequence[str]) -> FloatArray:
         if not texts:
             return np.empty((0, self.dimension), dtype=np.float32)
         vectors = np.asarray(list(self._model.embed(list(texts))), dtype=np.float32)
@@ -102,9 +104,9 @@ class FastEmbedder:
         norms = np.linalg.norm(vectors, axis=1, keepdims=True)
         if np.any(norms == 0):
             raise ValueError("embedding model returned a zero-length vector")
-        return vectors / norms
+        return cast(FloatArray, vectors / norms)
 
-    def encode_query(self, query: str) -> np.ndarray:
+    def encode_query(self, query: str) -> FloatArray:
         vectors = np.asarray(list(self._model.query_embed(query)), dtype=np.float32)
         if vectors.shape != (1, self.dimension):
             raise ValueError(
@@ -113,7 +115,7 @@ class FastEmbedder:
         norm = np.linalg.norm(vectors[0])
         if norm == 0:
             raise ValueError("embedding model returned a zero-length query vector")
-        return vectors[0] / norm
+        return cast(FloatArray, vectors[0] / norm)
 
 
 def has_pending_messages(

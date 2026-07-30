@@ -25,9 +25,27 @@ class SearchResult(TypedDict):
     files: list[str]
 
 
+class IndexStatus(TypedDict):
+    last_refresh: str | None
+    refresh_errors: int
+
+
 class SearchResponse(TypedDict):
     results: list[SearchResult]
-    index: dict[str, object]
+    index: IndexStatus
+
+
+class ContextMessage(TypedDict):
+    message_id: str
+    role: str
+    timestamp: str | None
+    text: str
+
+
+class ContextResponse(TypedDict):
+    session_id: str
+    selected_message_id: str
+    messages: list[ContextMessage]
 
 
 def _fts_query(query: str) -> str:
@@ -217,7 +235,7 @@ def get_context(
     *,
     before: int = 3,
     after: int = 3,
-) -> dict[str, object]:
+) -> ContextResponse:
     before = max(0, min(before, MAX_CONTEXT))
     after = max(0, min(after, MAX_CONTEXT))
     target = connection.execute(

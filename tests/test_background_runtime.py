@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import threading
 from pathlib import Path
 
+from starlette.requests import Request
 from starlette.testclient import TestClient
 
 from locallore.config import Settings
@@ -13,6 +15,7 @@ from locallore.indexing.importer import ImportResult
 from locallore.server.auth import (
     LocalBearerTokenVerifier,
     bearer_token_matches,
+    is_authorized,
 )
 from locallore.server.mcp import mcp
 from locallore.server.runtime import LocalLoreRuntime, source_snapshot
@@ -105,6 +108,50 @@ def test_refresh_event_during_work_runs_one_follow_up(
     assert calls == 2
 
 
+def test_failed_refresh_records_error_and_retries(
+    tmp_path: Path,
+    monkeypatch,
+    caplog,
+) -> None:
+    settings = runtime_settings(tmp_path)
+    runtime = LocalLoreRuntime(settings)
+    calls = 0
+    retry_finished = threading.Event()
+    original_sleep = asyncio.sleep
+
+    def refresh_once() -> tuple[ImportResult, int]:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("temporary indexing failure")
+        retry_finished.set()
+        return ImportResult(messages_added=1), 0
+
+    async def skip_backoff(delay: float) -> None:
+        if delay != 1.0:
+            await original_sleep(delay)
+
+    monkeypatch.setattr(runtime, "_refresh_once", refresh_once)
+    monkeypatch.setattr("locallore.server.runtime.asyncio.sleep", skip_backoff)
+
+    async def exercise() -> None:
+        worker = asyncio.create_task(runtime._refresh_worker())
+        runtime.request_refresh()
+        assert await asyncio.to_thread(retry_finished.wait, 2)
+        assert await runtime.wait_until_ready(timeout=2)
+        runtime._stopping = True
+        worker.cancel()
+        await asyncio.gather(worker, return_exceptions=True)
+
+    with caplog.at_level(logging.ERROR):
+        asyncio.run(exercise())
+
+    assert calls == 2
+    assert "temporary indexing failure" in caplog.text
+    assert runtime.last_background_error is None
+    assert runtime.last_stats.messages_added == 1
+
+
 def test_runtime_starts_ready_and_initializes_one_model(
     tmp_path: Path,
     monkeypatch,
@@ -140,6 +187,15 @@ def test_local_bearer_auth_and_transport_security(
 
     assert bearer_token_matches(f"Bearer {token}", token)
     assert not bearer_token_matches("Bearer wrong", token)
+    assert is_authorized(
+        Request(
+            {
+                "type": "http",
+                "headers": [(b"authorization", f"Bearer {token}".encode())],
+            }
+        )
+    )
+    assert not is_authorized(Request({"type": "http", "headers": []}))
     assert asyncio.run(verifier.verify_token("wrong")) is None
     assert asyncio.run(verifier.verify_token(token)) is not None
 

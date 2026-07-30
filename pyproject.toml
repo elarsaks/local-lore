@@ -17,13 +17,33 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
   "httpx2==2.9.1",
-  "pyyaml==6.0.3",
+  "mypy==2.3.0",
   "pytest==8.4.2",
+  "pytest-cov==7.1.0",
+  "pyyaml==6.0.3",
   "ruff==0.16.0",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/locallore"]
+
+[tool.coverage.run]
+branch = true
+source = ["locallore"]
+
+[tool.coverage.report]
+fail_under = 81
+precision = 2
+show_missing = true
+skip_covered = true
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+pretty = true
+show_error_codes = true
+warn_unused_configs = true
+files = ["src/locallore"]
 
 [tool.pytest.ini_options]
 filterwarnings = ["error"]

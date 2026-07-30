@@ -104,13 +104,10 @@ def _import_file(
                         imported_at,
                     ),
                 )
-                session_metadata[parsed.session_id] = tuple(
-                    value if value is not None else previous
-                    for value, previous in zip(
-                        current_metadata,
-                        previous_metadata or (None, None),
-                        strict=True,
-                    )
+                previous_project, previous_cwd = previous_metadata or (None, None)
+                session_metadata[parsed.session_id] = (
+                    parsed.project if parsed.project is not None else previous_project,
+                    parsed.cwd if parsed.cwd is not None else previous_cwd,
                 )
             content_hash = hashlib.sha256(parsed.text.encode()).hexdigest()
             cursor = connection.execute(

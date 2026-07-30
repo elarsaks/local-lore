@@ -105,6 +105,28 @@ def test_embedding_is_batched_idempotent_and_model_aware(tmp_path: Path) -> None
     assert status["embedding_model_id"] == "fake-v2"
 
 
+def test_embedding_shape_failure_does_not_persist_partial_results(
+    tmp_path: Path,
+) -> None:
+    connection = semantic_database(tmp_path)
+
+    class WrongShapeEmbedder(FakeEmbedder):
+        def encode(self, texts):
+            return np.zeros((len(texts), 2), dtype=np.float32)
+
+    embedder = WrongShapeEmbedder(
+        {
+            "Users cannot sign in after their credentials expire": [1, 0, 0],
+            "The schema migration is idempotent": [0, 1, 0],
+        }
+    )
+
+    with pytest.raises(ValueError, match="unexpected batch shape"):
+        embed_pending_messages(connection, embedder)
+
+    assert connection.execute("SELECT count(*) FROM embeddings").fetchone()[0] == 0
+
+
 def test_pending_check_uses_model_and_content_identity(tmp_path: Path) -> None:
     connection = semantic_database(tmp_path)
 
