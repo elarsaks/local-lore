@@ -5,7 +5,7 @@ import logging
 import threading
 import time
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,6 +16,7 @@ from ..embeddings import Embedder, FastEmbedder, embedding_model_id
 from ..indexing.discovery import discover
 from ..indexing.importer import ImportResult
 from ..indexing.pipeline import update_index
+from ..status import RuntimeStatus
 from ..storage.db import connect, migrate
 
 logger = logging.getLogger(__name__)
@@ -249,9 +250,8 @@ class LocalLoreRuntime:
     def _refresh_once(self) -> tuple[ImportResult, int]:
         return update_index(self.settings, embedder=self.search_embedder)
 
-    def status(self) -> dict[str, object]:
+    def status(self) -> RuntimeStatus:
         with self._state_lock:
-            stats = asdict(self.last_stats)
             return {
                 "daemon_version": self.settings.runtime_version,
                 "uptime_seconds": round(time.monotonic() - self._started_monotonic, 3),
@@ -261,10 +261,10 @@ class LocalLoreRuntime:
                 "last_successful_refresh_at": self.last_successful_refresh_at,
                 "last_refresh_duration_seconds": (self.last_refresh_duration_seconds),
                 "refresh_queued": self._refresh_event.is_set(),
-                "last_refresh_files_added": stats["files_added"],
-                "last_refresh_files_removed": stats["files_removed"],
-                "last_refresh_messages_added": stats["messages_added"],
-                "last_refresh_messages_removed": stats["messages_removed"],
+                "last_refresh_files_added": self.last_stats.files_added,
+                "last_refresh_files_removed": self.last_stats.files_removed,
+                "last_refresh_messages_added": self.last_stats.messages_added,
+                "last_refresh_messages_removed": self.last_stats.messages_removed,
                 "last_background_error": self.last_background_error,
                 "watcher_interval_seconds": self.settings.watcher_interval,
                 "transport": "streamable-http",

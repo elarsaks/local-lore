@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import AnyHttpUrl
+from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from ..config import Settings
-from ..search import get_context, search_messages
+from ..search import ContextResponse, SearchResponse, get_context, search_messages
 from ..status import Status, get_status
 from ..storage.db import connect
 from .auth import LocalBearerTokenVerifier, is_authorized
@@ -22,7 +25,7 @@ _runtime: LocalLoreRuntime | None = None
 
 
 @asynccontextmanager
-async def _daemon_lifespan(app):
+async def _daemon_lifespan(app: Starlette) -> AsyncIterator[None]:
     global _runtime
     runtime = LocalLoreRuntime(Settings.from_env())
     await runtime.start()
@@ -64,20 +67,24 @@ mcp = FastMCP(
     json_response=True,
     token_verifier=LocalBearerTokenVerifier(),
     auth=AuthSettings(
-        issuer_url=f"http://127.0.0.1:{_initial_settings.public_port}/",
+        issuer_url=AnyHttpUrl(f"http://127.0.0.1:{_initial_settings.public_port}/"),
         resource_server_url=None,
     ),
     transport_security=_transport_security(_initial_settings),
 )
 
 
-@mcp.custom_route("/healthz", methods=["GET"], include_in_schema=False)
+@mcp.custom_route(  # type: ignore[untyped-decorator]
+    "/healthz", methods=["GET"], include_in_schema=False
+)
 async def healthz(_request: Request) -> JSONResponse:
     """Return non-sensitive liveness after migration and listener startup."""
     return JSONResponse({"status": "ok"})
 
 
-@mcp.custom_route("/statusz", methods=["GET"], include_in_schema=False)
+@mcp.custom_route(  # type: ignore[untyped-decorator]
+    "/statusz", methods=["GET"], include_in_schema=False
+)
 async def statusz(request: Request) -> JSONResponse:
     if not is_authorized(request):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
@@ -89,7 +96,9 @@ async def statusz(request: Request) -> JSONResponse:
     return JSONResponse(status)
 
 
-@mcp.custom_route("/admin/refresh", methods=["POST"], include_in_schema=False)
+@mcp.custom_route(  # type: ignore[untyped-decorator]
+    "/admin/refresh", methods=["POST"], include_in_schema=False
+)
 async def request_refresh(request: Request) -> JSONResponse:
     if not is_authorized(request):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
@@ -118,7 +127,7 @@ def locallore_search(
     role: str | None = None,
     files: list[str] | None = None,
     limit: int = 8,
-) -> dict[str, object]:
+) -> SearchResponse:
     """Search indexed session history using full-text search and filters."""
     runtime = _runtime
     if runtime is None:
@@ -143,7 +152,7 @@ def locallore_context(
     message_id: str,
     before: int = 3,
     after: int = 3,
-) -> dict[str, object]:
+) -> ContextResponse:
     """Return bounded messages surrounding one search result."""
     with connect(Settings.from_env().database_path) as connection:
         return get_context(

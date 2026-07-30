@@ -116,7 +116,7 @@ controls.
 ## Validation
 
 ```bash
-uv run pytest
+./scripts/check.sh
 claude plugin validate .
 ./scripts/doctor.sh
 ```

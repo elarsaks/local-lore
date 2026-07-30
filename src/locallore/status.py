@@ -2,23 +2,14 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from . import __version__
 from .storage.db import SCHEMA_VERSION
 
 
-class Status(TypedDict):
-    schema_version: int
-    last_refresh: str | None
-    sessions: int
-    messages: int
-    embedded_messages: int
-    embedding_model_id: str | None
-    import_errors: list[str]
-    runtime_network: str
+class RuntimeStatus(TypedDict):
     daemon_version: str
     uptime_seconds: float | None
     refresh_state: str
@@ -36,9 +27,20 @@ class Status(TypedDict):
     transport: str
 
 
+class Status(RuntimeStatus):
+    schema_version: int
+    last_refresh: str | None
+    sessions: int
+    messages: int
+    embedded_messages: int
+    embedding_model_id: str | None
+    import_errors: list[str]
+    runtime_network: str
+
+
 def get_status(
     database_path: Path | None = None,
-    runtime_status: Mapping[str, Any] | None = None,
+    runtime_status: RuntimeStatus | None = None,
 ) -> Status:
     sessions = messages = embedded_messages = 0
     embedding_model_id = None
@@ -65,27 +67,23 @@ def get_status(
             "SELECT max(updated_at) FROM import_files"
         ).fetchone()[0]
         connection.close()
-    background: dict[str, Any] = {
-        "daemon_version": __version__,
-        "uptime_seconds": None,
-        "refresh_state": "idle",
-        "last_refresh_started_at": None,
-        "last_refresh_completed_at": None,
-        "last_successful_refresh_at": last_refresh,
-        "last_refresh_duration_seconds": None,
-        "refresh_queued": False,
-        "last_refresh_files_added": 0,
-        "last_refresh_files_removed": 0,
-        "last_refresh_messages_added": 0,
-        "last_refresh_messages_removed": 0,
-        "last_background_error": None,
-        "watcher_interval_seconds": float(
-            os.environ.get("LOCALLORE_WATCH_INTERVAL", "2")
-        ),
-        "transport": os.environ.get("LOCALLORE_TRANSPORT", "streamable-http"),
-    }
-    if runtime_status is not None:
-        background.update(runtime_status)
+    background = runtime_status or RuntimeStatus(
+        daemon_version=__version__,
+        uptime_seconds=None,
+        refresh_state="idle",
+        last_refresh_started_at=None,
+        last_refresh_completed_at=None,
+        last_successful_refresh_at=last_refresh,
+        last_refresh_duration_seconds=None,
+        refresh_queued=False,
+        last_refresh_files_added=0,
+        last_refresh_files_removed=0,
+        last_refresh_messages_added=0,
+        last_refresh_messages_removed=0,
+        last_background_error=None,
+        watcher_interval_seconds=float(os.environ.get("LOCALLORE_WATCH_INTERVAL", "2")),
+        transport=os.environ.get("LOCALLORE_TRANSPORT", "streamable-http"),
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "last_refresh": last_refresh,
