@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping, TypedDict
+from typing import Any, TypedDict
 
 from . import __version__
 from .storage.db import SCHEMA_VERSION

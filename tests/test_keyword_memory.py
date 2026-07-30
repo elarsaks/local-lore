@@ -14,15 +14,10 @@ def indexed_database(tmp_path: Path):
     sessions = tmp_path / "sessions" / "alpha"
     sessions.mkdir(parents=True)
     (sessions / "history.jsonl").write_text(
-        "\n".join(
-            (
-                '{"type":"user","sessionId":"s1","uuid":"m1","timestamp":"2026-01-01T10:00:00Z","project":"alpha","message":{"role":"user","content":"Why remove the HTTP transport?"}}',
-                '{"type":"assistant","sessionId":"s1","uuid":"m2","timestamp":"2026-01-01T10:01:00Z","project":"alpha","message":{"role":"assistant","content":[{"type":"text","text":"We removed the HTTP transport to keep the runtime offline."},{"type":"tool_use","name":"Edit","input":{"file_path":"compose.yaml"}}]}}',
-                '{"type":"user","sessionId":"s1","uuid":"m3","timestamp":"2026-01-01T10:02:00Z","project":"alpha","message":{"role":"user","content":"Unrelated deployment note"}}',
-                '{"type":"assistant","sessionId":"s2","uuid":"m4","timestamp":"2025-01-01T10:00:00Z","project":"beta","message":{"role":"assistant","content":"HTTP transport remains enabled here."}}',
-            )
-        )
-        + "\n"
+        '{"type":"user","sessionId":"s1","uuid":"m1","timestamp":"2026-01-01T10:00:00Z","project":"alpha","message":{"role":"user","content":"Why remove the HTTP transport?"}}\n'
+        '{"type":"assistant","sessionId":"s1","uuid":"m2","timestamp":"2026-01-01T10:01:00Z","project":"alpha","message":{"role":"assistant","content":[{"type":"text","text":"We removed the HTTP transport to keep the runtime offline."},{"type":"tool_use","name":"Edit","input":{"file_path":"compose.yaml"}}]}}\n'
+        '{"type":"user","sessionId":"s1","uuid":"m3","timestamp":"2026-01-01T10:02:00Z","project":"alpha","message":{"role":"user","content":"Unrelated deployment note"}}\n'
+        '{"type":"assistant","sessionId":"s2","uuid":"m4","timestamp":"2025-01-01T10:00:00Z","project":"beta","message":{"role":"assistant","content":"HTTP transport remains enabled here."}}\n'
     )
     connection = connect(tmp_path / "locallore.db")
     migrate(connection)

@@ -9,7 +9,6 @@ import yaml
 
 from locallore.server.mcp import locallore_status, mcp
 
-
 ROOT = Path(__file__).parents[1]
 
 

@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 _FILE_KEYS = ("file_path", "path", "filename")
 
 

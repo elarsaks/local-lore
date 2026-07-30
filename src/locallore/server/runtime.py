@@ -4,10 +4,10 @@ import asyncio
 import logging
 import threading
 import time
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 
@@ -52,7 +52,7 @@ class RefreshStats:
 class _LockedEmbedder:
     """Serialize each inference call while retaining one underlying model."""
 
-    def __init__(self, runtime: "LocalLoreRuntime") -> None:
+    def __init__(self, runtime: LocalLoreRuntime) -> None:
         self._runtime = runtime
 
     @property
@@ -169,7 +169,7 @@ class LocalLoreRuntime:
                 current = await asyncio.to_thread(
                     source_snapshot, self.settings.sessions_path
                 )
-            except Exception as exc:
+            except OSError as exc:
                 self.last_background_error = f"watch scan failed: {exc}"
                 logger.warning("LocalLore watcher scan failed: %s", exc)
                 continue
@@ -213,9 +213,8 @@ class LocalLoreRuntime:
                 self.last_background_error = str(exc)
                 self.refresh_state = "error"
                 logger.exception(
-                    "background_refresh state=error duration=%.3f error=%s",
+                    "background_refresh state=error duration=%.3f",
                     self.last_refresh_duration_seconds,
-                    exc,
                 )
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 30.0)

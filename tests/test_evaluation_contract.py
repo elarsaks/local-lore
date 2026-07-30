@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 ROOT = Path(__file__).parents[1]
 EVAL_PATH = ROOT / "evals" / "remember.yaml"
 REQUIRED_BEHAVIORS = {

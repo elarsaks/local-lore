@@ -23,7 +23,7 @@ class Settings:
     runtime_version: str = "0.2.0"
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         return cls(
             database_path=Path(os.environ.get("LOCALLORE_DB", "/data/locallore.db")),
             sessions_path=Path(os.environ.get("LOCALLORE_SESSIONS", "/sessions")),
