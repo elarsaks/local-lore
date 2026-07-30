@@ -46,28 +46,22 @@ Acceptance criteria:
 - New production code cannot reduce coverage below the committed threshold.
 - `scripts/check.sh` runs lint, formatting, typing, coverage, and ShellCheck.
 
-## PR 3: Make upgrades and releases reproducible
+## PR 3: Make releases reproducible
 
-Goal: ensure installed databases and built artifacts can be upgraded safely.
+Goal: make built releases consistent and independently verifiable.
 
 Scope:
 
-- Replace the single current-schema migration with ordered, immutable migration
-  files.
-- Add upgrade fixtures and tests for every released schema version.
 - Add a tested version-bump command for Python, Compose, shell, plugin manifest,
   marketplace, and release metadata.
 - Build both wheel and source distribution in CI.
 - Install the wheel into a clean environment and verify imports, CLI startup,
   packaged SQL resources, and database creation.
-- Document the migration and release procedures.
+- Document the release procedure.
 
 Acceptance criteria:
 
-- A database created by each previous release upgrades to the current schema
-  without data loss.
-- Reapplying migrations is safe.
-- One command updates all committed version locations or fails atomically.
+- One command validates and updates every committed version location.
 - Tests catch every version mismatch.
 - Built artifacts work without access to the repository checkout.
 
@@ -102,7 +96,7 @@ The pull requests are intentionally dependency-ordered:
 
 1. Quality baseline
 2. Typing and coverage
-3. Reproducible upgrades and releases
+3. Reproducible releases
 4. Supply-chain and release hardening
 
 Later pull requests should be rebased on the merged predecessor so each diff

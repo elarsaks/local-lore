@@ -58,6 +58,29 @@ jobs:
           LOCALLORE_TOKEN: ci-only-placeholder-token-not-used-at-runtime
         run: docker compose config --quiet
 
+  artifacts:
+    name: Python distributions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Build and smoke-test distributions
+        run: ./scripts/check_artifacts.sh dist
+      - name: Upload Python distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/*
+          if-no-files-found: error
+
   offline-image:
     name: Offline image build
     runs-on: ubuntu-latest
