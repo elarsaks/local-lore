@@ -92,9 +92,10 @@ jobs:
           uv run python -c '
           import json
           from pathlib import Path
+          from locallore import __version__
           manifest = json.loads(Path(".claude-plugin/plugin.json").read_text())
           assert manifest["name"] == "locallore"
-          assert manifest["version"] == "0.2.0"
+          assert manifest["version"] == __version__
           assert manifest["author"]["name"] == "Elar Saks"
           '
 

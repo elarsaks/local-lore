@@ -1,0 +1,22 @@
+{
+  "name": "locallore",
+  "owner": {
+    "name": "Elar Saks"
+  },
+  "description": "Private local search and memory tools for Claude Code session history",
+  "plugins": [
+    {
+      "name": "locallore",
+      "source": "./",
+      "description": "Offline local memory for Claude Code sessions",
+      "version": "0.3.0",
+      "category": "developer-tools",
+      "tags": [
+        "memory",
+        "search",
+        "mcp",
+        "privacy"
+      ]
+    }
+  ]
+}

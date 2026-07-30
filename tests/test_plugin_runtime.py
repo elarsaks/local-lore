@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import json
 import stat
+import tomllib
 from pathlib import Path
 
 import yaml
 
+from locallore import __version__
 from locallore.server.mcp import locallore_status, mcp
 
 ROOT = Path(__file__).parents[1]
@@ -14,12 +16,33 @@ ROOT = Path(__file__).parents[1]
 
 def test_plugin_manifest_has_expected_identity_and_author() -> None:
     manifest = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())
 
     assert manifest["name"] == "locallore"
-    assert manifest["version"] == "0.2.0"
+    assert manifest["version"] == __version__
+    assert manifest["version"] == project["project"]["version"]
+    assert (
+        (ROOT / "RELEASE_NOTES.md")
+        .read_text()
+        .startswith(f"# LocalLore {manifest['version']} Release Notes")
+    )
     assert manifest["author"]["name"] == "Elar Saks"
     assert manifest["userConfig"]["port"]["default"] == 8765
     assert manifest["userConfig"]["projects_directory"]["type"] == "directory"
+
+
+def test_repository_is_a_self_hosted_plugin_marketplace() -> None:
+    manifest = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+    marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
+    plugin = marketplace["plugins"][0]
+
+    assert marketplace["name"] == "locallore"
+    assert plugin["name"] == manifest["name"]
+    assert plugin["version"] == manifest["version"]
+    assert plugin["source"] == "./"
+    assert (
+        "${user_config.projects_directory}" in (ROOT / "commands/setup.md").read_text()
+    )
 
 
 def test_mcp_exposes_the_status_tool() -> None:

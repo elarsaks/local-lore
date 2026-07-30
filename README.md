@@ -15,7 +15,24 @@ The initial image build needs internet access for pinned Python packages and the
 embedding model. The model is bundled in the image and inference never falls
 back to a remote service.
 
-## Install or update
+## Install
+
+Add this repository as a Claude Code marketplace and install LocalLore:
+
+```text
+/plugin marketplace add elarsaks/local-lore
+/plugin install locallore@locallore
+/reload-plugins
+/locallore:setup
+```
+
+The default user-scoped installation makes LocalLore available in every
+project. During setup, LocalLore builds its container image, starts the
+persistent daemon, waits for the initial index, and runs its health and security
+checks. Rerun `/locallore:setup` after marketplace updates to activate the
+updated daemon version.
+
+## Install from a checkout or update manually
 
 Run the same command for initial installation and every update:
 
@@ -68,8 +85,9 @@ Indexing runs automatically in the daemon. `uninstall.sh` asks for confirmation
 before deleting the container, derived index volume, runtime configuration, and
 bearer token; Claude session files are never deleted.
 
-Normal Claude sessions never launch a container, Python server, index pass, or
-model instance; they connect to the persistent HTTP daemon.
+Normal Claude sessions connect to the persistent HTTP daemon. If its container
+is stopped but the installed image is available, the authentication helper
+starts the same service without rebuilding it.
 
 ## Privacy and security
 

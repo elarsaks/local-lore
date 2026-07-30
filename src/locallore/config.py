@@ -20,7 +20,7 @@ class Settings:
     watcher_interval: float = 2.0
     watcher_idle_interval: float = 2.0
     watcher_debounce: float = 0.5
-    runtime_version: str = "0.2.0"
+    runtime_version: str = "0.3.0"
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -46,5 +46,5 @@ class Settings:
                 os.environ.get("LOCALLORE_IDLE_WATCH_INTERVAL", "2")
             ),
             watcher_debounce=float(os.environ.get("LOCALLORE_WATCH_DEBOUNCE", "0.5")),
-            runtime_version=os.environ.get("LOCALLORE_ACTIVE_VERSION", "0.2.0"),
+            runtime_version=os.environ.get("LOCALLORE_ACTIVE_VERSION", "0.3.0"),
         )
