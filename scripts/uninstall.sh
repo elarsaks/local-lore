@@ -1,13 +1,15 @@
 #!/bin/sh
 set -eu
 
-. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/lib.sh"
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/lib.sh"
 locallore_require_runtime
 locallore_require_docker
 
 if [ "${1:-}" != "--yes" ]; then
   printf 'Delete the LocalLore container and SQLite index volume? [y/N] ' >&2
-  read answer
+  read -r answer
   case "$answer" in
     y|Y|yes|YES) ;;
     *) echo "Uninstall cancelled." >&2; exit 1 ;;

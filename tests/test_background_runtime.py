@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import os
+import threading
 from pathlib import Path
 
 from starlette.testclient import TestClient
 
 from locallore.config import Settings
 from locallore.embeddings import MODEL_CHECKSUM_FILE
+from locallore.indexing.importer import ImportResult
 from locallore.server.auth import (
     LocalBearerTokenVerifier,
     bearer_token_matches,
@@ -71,17 +73,18 @@ def test_refresh_event_during_work_runs_one_follow_up(
     settings = runtime_settings(tmp_path)
     runtime = LocalLoreRuntime(settings)
     calls = 0
-    first_started = __import__("threading").Event()
-    release_first = __import__("threading").Event()
+    first_started = threading.Event()
+    release_first = threading.Event()
+    second_finished = threading.Event()
 
-    def refresh_once():
+    def refresh_once() -> tuple[ImportResult, int]:
         nonlocal calls
         calls += 1
         if calls == 1:
             first_started.set()
             release_first.wait(timeout=2)
-        from locallore.indexing.importer import ImportResult
-
+        else:
+            second_finished.set()
         return ImportResult(), 0
 
     monkeypatch.setattr(runtime, "_refresh_once", refresh_once)
@@ -93,9 +96,7 @@ def test_refresh_event_during_work_runs_one_follow_up(
         runtime.request_refresh()
         runtime.request_refresh()
         release_first.set()
-        deadline = asyncio.get_running_loop().time() + 2
-        while calls < 2 and asyncio.get_running_loop().time() < deadline:
-            await asyncio.sleep(0.01)
+        await asyncio.to_thread(second_finished.wait, 2)
         runtime._stopping = True
         worker.cancel()
         await asyncio.gather(worker, return_exceptions=True)

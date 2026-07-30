@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  retrieval-evals:
-    name: Deterministic retrieval evals
+  quality:
+    name: Python and plugin quality
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -23,73 +23,19 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends shellcheck
       - name: Install locked development dependencies
         run: uv sync --locked --dev
-      - name: Run offline keyword retrieval evals
-        run: uv run pytest -q tests/test_retrieval_evals.py
-
-  evaluation-contract:
-    name: Evaluation contract
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - name: Install locked development dependencies
-        run: uv sync --locked --dev
-
-      - name: Verify evaluation contract
-        run: uv run pytest -q tests/test_evaluation_contract.py
-
-  session-ingestion:
-    name: Session ingestion
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - name: Install locked development dependencies
-        run: uv sync --locked --dev
-      - name: Verify message parsing and session refresh
-        run: uv run pytest -q tests/test_message_parsing.py tests/test_session_ingestion.py
-
-  plugin-runtime:
-    name: Plugin runtime
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - name: Install locked development dependencies
-        run: uv sync --locked --dev
-      - name: Verify plugin runtime
-        run: uv run pytest -q tests/test_plugin_runtime.py
+      - name: Run repository quality checks
+        run: ./scripts/check.sh
 
       - name: Validate plugin manifest
         run: |
-          uv run python -m json.tool .claude-plugin/plugin.json >/dev/null
-          uv run python -c '
+          uv run --locked python -m json.tool .claude-plugin/plugin.json >/dev/null
+          uv run --locked python -c '
           import json
           from pathlib import Path
           from locallore import __version__

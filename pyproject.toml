@@ -16,9 +16,41 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+  "httpx2==2.9.1",
   "pyyaml==6.0.3",
   "pytest==8.4.2",
+  "ruff==0.16.0",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/locallore"]
+
+[tool.pytest.ini_options]
+filterwarnings = ["error"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "E4",
+  "E7",
+  "E9",
+  "F",
+  "I",
+  "UP",
+  "B",
+  "SIM",
+  "C4",
+  "PIE",
+  "RUF",
+  "ASYNC",
+  "PERF",
+]
+ignore = [
+  # The formatter intentionally leaves long SQL and JSON fixture strings intact.
+  "E501",
+  # This public helper returns False on timeout instead of raising TimeoutError.
+  "ASYNC109",
+]
