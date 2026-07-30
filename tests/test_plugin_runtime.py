@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import stat
 import tomllib
 from pathlib import Path
@@ -111,6 +112,29 @@ def test_launcher_scripts_are_executable_and_use_strict_mode() -> None:
         assert mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         content = script.read_text()
         assert "set -eu" in content
+
+
+def test_build_and_workflow_dependencies_are_immutable() -> None:
+    full_sha = re.compile(r"[0-9a-f]{40}")
+    for workflow in (ROOT / ".github/workflows").glob("*.yml"):
+        for line in workflow.read_text().splitlines():
+            match = re.search(r"uses:\s+(\S+)@(\S+)", line)
+            if match is not None:
+                assert full_sha.fullmatch(match.group(2)), line
+
+    dockerfile = (ROOT / "Dockerfile").read_text()
+    digest = r"sha256:[0-9a-f]{64}"
+    assert re.search(rf"FROM python:[^\s@]+@{digest}", dockerfile)
+    assert re.search(rf"COPY --from=ghcr\.io/astral-sh/uv:[^\s@]+@{digest}", dockerfile)
+    assert re.search(r"revision='[0-9a-f]{40}'", dockerfile)
+
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    requirements = [
+        *project["project"]["dependencies"],
+        *project["dependency-groups"]["dev"],
+        *project["build-system"]["requires"],
+    ]
+    assert all("==" in requirement for requirement in requirements)
 
 
 def test_mcp_configuration_uses_http_and_dynamic_headers() -> None:
