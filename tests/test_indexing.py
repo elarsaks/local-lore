@@ -8,7 +8,8 @@ from locallore.embeddings import MODEL_CHECKSUM_FILE
 
 
 def test_index_skips_model_initialization_when_embeddings_are_current(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     sessions = tmp_path / "sessions"
     models = tmp_path / "models"

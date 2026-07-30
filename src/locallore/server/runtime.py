@@ -123,8 +123,7 @@ class LocalLoreRuntime:
     async def start(self) -> None:
         if not self.settings.sessions_path.is_dir():
             raise FileNotFoundError(
-                f"session directory does not exist: "
-                f"{self.settings.sessions_path}"
+                f"session directory does not exist: {self.settings.sessions_path}"
             )
         self._model_id = embedding_model_id(
             self.settings.embedding_model, self.settings.model_path
@@ -226,9 +225,7 @@ class LocalLoreRuntime:
             completed = _utc_now()
             self.last_refresh_completed_at = completed
             self.last_successful_refresh_at = completed
-            self.last_refresh_duration_seconds = round(
-                time.monotonic() - started, 6
-            )
+            self.last_refresh_duration_seconds = round(time.monotonic() - started, 6)
             self.last_background_error = None
             self.last_stats = RefreshStats(
                 files_added=result.files_added,
@@ -237,9 +234,7 @@ class LocalLoreRuntime:
                 messages_removed=result.messages_removed,
                 messages_embedded=embedded,
             )
-            self.refresh_state = (
-                "indexing" if self._refresh_event.is_set() else "idle"
-            )
+            self.refresh_state = "indexing" if self._refresh_event.is_set() else "idle"
             logger.info(
                 "background_refresh state=success duration=%.3f "
                 "files_changed=%d files_removed=%d messages_added=%d "
@@ -260,16 +255,12 @@ class LocalLoreRuntime:
             stats = asdict(self.last_stats)
             return {
                 "daemon_version": self.settings.runtime_version,
-                "uptime_seconds": round(
-                    time.monotonic() - self._started_monotonic, 3
-                ),
+                "uptime_seconds": round(time.monotonic() - self._started_monotonic, 3),
                 "refresh_state": self.refresh_state,
                 "last_refresh_started_at": self.last_refresh_started_at,
                 "last_refresh_completed_at": self.last_refresh_completed_at,
                 "last_successful_refresh_at": self.last_successful_refresh_at,
-                "last_refresh_duration_seconds": (
-                    self.last_refresh_duration_seconds
-                ),
+                "last_refresh_duration_seconds": (self.last_refresh_duration_seconds),
                 "refresh_queued": self._refresh_event.is_set(),
                 "last_refresh_files_added": stats["files_added"],
                 "last_refresh_files_removed": stats["files_removed"],

@@ -47,9 +47,7 @@ def _directory_checksum(path: Path) -> str:
         return checksum
     digest = hashlib.sha256()
     files = sorted(
-        item
-        for item in path.rglob("*")
-        if item.is_file() and item != checksum_path
+        item for item in path.rglob("*") if item.is_file() and item != checksum_path
     )
     if not files:
         raise FileNotFoundError(f"embedding model assets not found in {path}")

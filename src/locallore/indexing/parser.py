@@ -90,7 +90,9 @@ def parse_record(payload: object, source: Path, line: int) -> ParsedMessage | No
         message_id=raw_id,
         role=role,
         raw_type=str(payload.get("type", role)),
-        timestamp=payload.get("timestamp") if isinstance(payload.get("timestamp"), str) else None,
+        timestamp=payload.get("timestamp")
+        if isinstance(payload.get("timestamp"), str)
+        else None,
         text=text,
         cwd=cwd if isinstance(cwd, str) else None,
         project=project if isinstance(project, str) else None,

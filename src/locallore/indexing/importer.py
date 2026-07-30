@@ -163,7 +163,7 @@ def _import_file(
             line_number,
             error_text,
             _now(),
-        )
+        ),
     )
     return added, errors, removed
 
@@ -186,9 +186,7 @@ def import_sessions(connection: sqlite3.Connection, root: Path) -> ImportResult:
                 "WHERE s.source_path = ?",
                 (path,),
             ).fetchone()[0]
-            connection.execute(
-                "DELETE FROM sessions WHERE source_path = ?", (path,)
-            )
+            connection.execute("DELETE FROM sessions WHERE source_path = ?", (path,))
             connection.execute("DELETE FROM import_files WHERE path = ?", (path,))
             files_removed += 1
             messages_removed += removed

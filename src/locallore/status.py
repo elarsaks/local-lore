@@ -93,8 +93,6 @@ def get_status(
         "embedded_messages": embedded_messages,
         "embedding_model_id": embedding_model_id,
         "import_errors": errors,
-        "runtime_network": os.environ.get(
-            "LOCALLORE_NETWORK_MODE", "not confirmed"
-        ),
+        "runtime_network": os.environ.get("LOCALLORE_NETWORK_MODE", "not confirmed"),
         **background,
     }

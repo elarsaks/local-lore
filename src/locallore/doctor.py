@@ -38,7 +38,9 @@ def run_doctor(settings: Settings) -> DoctorReport:
         with tempfile.NamedTemporaryFile(dir=database_parent):
             pass
     except OSError as exc:
-        raise DoctorError(f"database directory is not writable: {database_parent}: {exc}") from exc
+        raise DoctorError(
+            f"database directory is not writable: {database_parent}: {exc}"
+        ) from exc
     checks.append("database directory is writable")
 
     connection: sqlite3.Connection | None = None
@@ -75,7 +77,6 @@ def run_doctor(settings: Settings) -> DoctorReport:
             "cannot confirm the Compose runtime; run doctor through scripts/doctor.sh"
         )
     checks.append(
-        "Compose declares a loopback-published bridge "
-        "(outbound access remains enabled)"
+        "Compose declares a loopback-published bridge (outbound access remains enabled)"
     )
     return DoctorReport(tuple(checks))

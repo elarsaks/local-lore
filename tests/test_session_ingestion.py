@@ -15,9 +15,15 @@ FIXTURES = Path(__file__).parent / "fixtures" / "sessions"
 
 def snapshot(connection):
     return {
-        "sessions": connection.execute("SELECT id, source_path, project, cwd, started_at FROM sessions ORDER BY id").fetchall(),
-        "messages": connection.execute("SELECT id, session_id, source_line, role, timestamp, text, content_hash FROM messages ORDER BY id").fetchall(),
-        "checkpoints": connection.execute("SELECT path, identity, size_bytes, offset_bytes, last_line, last_error FROM import_files ORDER BY path").fetchall(),
+        "sessions": connection.execute(
+            "SELECT id, source_path, project, cwd, started_at FROM sessions ORDER BY id"
+        ).fetchall(),
+        "messages": connection.execute(
+            "SELECT id, session_id, source_line, role, timestamp, text, content_hash FROM messages ORDER BY id"
+        ).fetchall(),
+        "checkpoints": connection.execute(
+            "SELECT path, identity, size_bytes, offset_bytes, last_line, last_error FROM import_files ORDER BY path"
+        ).fetchall(),
     }
 
 
@@ -44,7 +50,9 @@ def test_new_complete_records_are_imported_on_refresh(tmp_path: Path) -> None:
     import_sessions(connection, sessions)
     source = sessions / "project-a" / "session-1.jsonl"
     with source.open("a") as handle:
-        handle.write('{"type":"user","sessionId":"session-1","uuid":"message-3","message":{"role":"user","content":"new message"}}\n')
+        handle.write(
+            '{"type":"user","sessionId":"session-1","uuid":"message-3","message":{"role":"user","content":"new message"}}\n'
+        )
     result = import_sessions(connection, sessions)
     assert result.messages_added == 1
     assert connection.execute("SELECT count(*) FROM messages").fetchone()[0] == 3
@@ -60,9 +68,9 @@ def test_incomplete_trailing_record_is_deferred_until_complete(tmp_path: Path) -
     connection = connect(tmp_path / "db.sqlite")
     migrate(connection)
     assert import_sessions(connection, sessions).messages_added == 0
-    assert connection.execute(
-        "SELECT offset_bytes FROM import_files"
-    ).fetchone()[0] == 0
+    assert (
+        connection.execute("SELECT offset_bytes FROM import_files").fetchone()[0] == 0
+    )
     with source.open("a") as handle:
         handle.write("\n")
     assert import_sessions(connection, sessions).messages_added == 1
@@ -124,13 +132,10 @@ def test_multi_file_import_is_atomic(tmp_path: Path, monkeypatch) -> None:
     sessions = tmp_path / "sessions"
     sessions.mkdir()
     record = (
-        '{"sessionId":"%s","uuid":"%s","message":'
-        '{"role":"user","content":"message"}}\n'
+        '{"sessionId":"%s","uuid":"%s","message":{"role":"user","content":"message"}}\n'
     )
     (sessions / "first.jsonl").write_text(record % ("first", "first-message"))
-    (sessions / "second.jsonl").write_text(
-        record % ("second", "second-message")
-    )
+    (sessions / "second.jsonl").write_text(record % ("second", "second-message"))
     connection = connect(tmp_path / "db.sqlite")
     migrate(connection)
     original = locallore.indexing.importer._import_file
@@ -143,14 +148,9 @@ def test_multi_file_import_is_atomic(tmp_path: Path, monkeypatch) -> None:
             raise RuntimeError("simulated import failure")
         return original(connection, source, checkpoint)
 
-    monkeypatch.setattr(
-        locallore.indexing.importer, "_import_file", fail_second_file
-    )
+    monkeypatch.setattr(locallore.indexing.importer, "_import_file", fail_second_file)
 
     with pytest.raises(RuntimeError, match="simulated import failure"):
         import_sessions(connection, sessions)
     assert connection.execute("SELECT count(*) FROM messages").fetchone()[0] == 0
-    assert (
-        connection.execute("SELECT count(*) FROM import_files").fetchone()[0]
-        == 0
-    )
+    assert connection.execute("SELECT count(*) FROM import_files").fetchone()[0] == 0

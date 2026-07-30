@@ -18,7 +18,9 @@ class FixedEmbedder:
 
     def encode_query(self, query: str) -> np.ndarray:
         seed = int.from_bytes(hashlib.sha256(query.encode()).digest()[:8], "little")
-        vector = np.random.default_rng(seed).normal(size=self.dimension).astype(np.float32)
+        vector = (
+            np.random.default_rng(seed).normal(size=self.dimension).astype(np.float32)
+        )
         return vector / np.linalg.norm(vector)
 
 
@@ -44,7 +46,13 @@ def test_hybrid_search_has_bounded_time_and_python_memory(tmp_path: Path) -> Non
         connection.execute(
             "INSERT INTO embeddings(message_id, model_id, dimension, content_hash, vector) "
             "VALUES (?, ?, ?, ?, ?)",
-            (message_id, embedder.model_id, embedder.dimension, hashlib.sha256(text.encode()).hexdigest(), encode_vector(vector)),
+            (
+                message_id,
+                embedder.model_id,
+                embedder.dimension,
+                hashlib.sha256(text.encode()).hexdigest(),
+                encode_vector(vector),
+            ),
         )
     connection.commit()
 
@@ -63,4 +71,6 @@ def test_hybrid_search_has_bounded_time_and_python_memory(tmp_path: Path) -> Non
     tracemalloc.stop()
 
     assert elapsed < 5.0, f"10 searches took {elapsed:.3f}s"
-    assert peak_bytes < 64 * 1024 * 1024, f"peak allocation was {peak_bytes / 1024 / 1024:.1f} MiB"
+    assert peak_bytes < 64 * 1024 * 1024, (
+        f"peak allocation was {peak_bytes / 1024 / 1024:.1f} MiB"
+    )
