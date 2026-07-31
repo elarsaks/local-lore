@@ -6,8 +6,6 @@ Run the LocalLore installer from the active plugin version:
 
 ```sh
 CLAUDE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}" \
-CLAUDE_PLUGIN_OPTION_projects_directory="${user_config.projects_directory}" \
-CLAUDE_PLUGIN_OPTION_port="${user_config.port}" \
 "${CLAUDE_PLUGIN_ROOT}/scripts/install.sh"
 ```
 
