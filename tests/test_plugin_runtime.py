@@ -45,6 +45,22 @@ def test_repository_is_a_self_hosted_plugin_marketplace() -> None:
     assert 'CLAUDE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}"' in setup
 
 
+def test_setup_reports_long_running_install_progress() -> None:
+    setup = (ROOT / "commands/setup.md").read_text()
+    installer = (ROOT / "scripts/install.sh").read_text()
+
+    assert "Before invoking the installer, tell the user" in setup
+    assert "Do not wait for the installer to finish" in setup
+    for message in (
+        "LocalLore image build complete.",
+        "LocalLore daemon started. Waiting for initial session indexing...",
+        "Still indexing Claude sessions (${elapsed}s elapsed)...",
+        "Initial session indexing complete.",
+        "Running LocalLore health and security checks...",
+    ):
+        assert message in installer
+
+
 def test_mcp_exposes_the_status_tool() -> None:
     tools = asyncio.run(mcp.list_tools())
 

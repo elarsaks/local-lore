@@ -81,12 +81,15 @@ fi
 
 echo "Building LocalLore $VERSION (the first build downloads the bundled model)..."
 locallore_compose build locallore
+echo "LocalLore image build complete."
 mv "$TEMP_ENV" "$RUNTIME_ENV"
 LOCALLORE_RUNTIME_ENV=$RUNTIME_ENV
 echo "Starting the persistent LocalLore daemon..."
 locallore_compose up -d --wait locallore
+echo "LocalLore daemon started. Waiting for initial session indexing..."
 
 deadline=150
+elapsed=0
 while [ "$deadline" -gt 0 ]; do
   status=$(curl -fsS --max-time 2 \
     -H "Authorization: Bearer $TOKEN" \
@@ -97,6 +100,10 @@ while [ "$deadline" -gt 0 ]; do
   fi
   sleep 2
   deadline=$((deadline - 2))
+  elapsed=$((elapsed + 2))
+  if [ $((elapsed % 10)) -eq 0 ] && [ "$deadline" -gt 0 ]; then
+    echo "Still indexing Claude sessions (${elapsed}s elapsed)..."
+  fi
 done
 if [ "$deadline" -le 0 ]; then
   echo "LocalLore started, but initial indexing did not finish in time." >&2
@@ -104,5 +111,7 @@ if [ "$deadline" -le 0 ]; then
   exit 1
 fi
 
+echo "Initial session indexing complete."
+echo "Running LocalLore health and security checks..."
 "$LOCALLORE_PLUGIN_ROOT/scripts/doctor.sh"
 echo "LocalLore is ready at http://127.0.0.1:$PORT/mcp"
