@@ -14,11 +14,12 @@ Install LocalLore from its GitHub repository:
 /locallore:setup
 ```
 
-The marketplace catalog pins the plugin to version 0.3.0. The setup command
-passes the configured Claude projects directory, loopback port, and persistent
-plugin data directory to the existing installer. It then builds the versioned
-container image, starts the daemon, waits for initial indexing, and runs the
-production health and security checks.
+The marketplace catalog pins the plugin to version 0.3.0. Marketplace installs
+use the standard Claude projects directory (`~/.claude/projects`) and loopback
+port (`8765`) automatically instead of prompting for configuration. The setup
+command passes the persistent plugin data directory to the installer, builds the
+versioned container image, starts the daemon, waits for initial indexing, and
+runs the production health and security checks.
 
 Rerun `/locallore:setup` after marketplace updates to build and activate the
 matching daemon version.

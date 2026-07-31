@@ -9,24 +9,8 @@
   "mcpServers": {
     "locallore": {
       "type": "http",
-      "url": "http://127.0.0.1:${user_config.port}/mcp",
+      "url": "http://127.0.0.1:8765/mcp",
       "headersHelper": "\"${CLAUDE_PLUGIN_ROOT}/scripts/mcp-headers.sh\""
-    }
-  },
-  "userConfig": {
-    "port": {
-      "type": "number",
-      "title": "LocalLore port",
-      "description": "Loopback TCP port used by the persistent LocalLore daemon",
-      "default": 8765,
-      "min": 1024,
-      "max": 65535
-    },
-    "projects_directory": {
-      "type": "directory",
-      "title": "Claude projects directory",
-      "description": "Directory containing Claude Code project session JSONL files",
-      "default": "~/.claude/projects"
     }
   }
 }

@@ -49,8 +49,9 @@ Set a non-default session directory when needed:
 CLAUDE_PROJECTS_DIR=/path/to/projects ./scripts/install.sh
 ```
 
-For a non-default port, set the plugin's `port` option and rerun the installer
-from an environment that exposes the matching `CLAUDE_PLUGIN_OPTION_port`.
+Marketplace installs use port `8765` and `~/.claude/projects` automatically, so
+plugin installation does not ask configuration questions. The manual installer
+continues to accept `CLAUDE_PROJECTS_DIR` for checkout-based installs.
 
 The installer validates Docker and the session path, preserves or creates a
 mode-`0600` random bearer token, builds the image, starts the fixed

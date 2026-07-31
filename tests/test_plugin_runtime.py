@@ -28,8 +28,7 @@ def test_plugin_manifest_has_expected_identity_and_author() -> None:
         .startswith(f"# LocalLore {manifest['version']} Release Notes")
     )
     assert manifest["author"]["name"] == "Elar Saks"
-    assert manifest["userConfig"]["port"]["default"] == 8765
-    assert manifest["userConfig"]["projects_directory"]["type"] == "directory"
+    assert "userConfig" not in manifest
 
 
 def test_repository_is_a_self_hosted_plugin_marketplace() -> None:
@@ -41,9 +40,9 @@ def test_repository_is_a_self_hosted_plugin_marketplace() -> None:
     assert plugin["name"] == manifest["name"]
     assert plugin["version"] == manifest["version"]
     assert plugin["source"] == "./"
-    assert (
-        "${user_config.projects_directory}" in (ROOT / "commands/setup.md").read_text()
-    )
+    setup = (ROOT / "commands/setup.md").read_text()
+    assert "${user_config" not in setup
+    assert 'CLAUDE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}"' in setup
 
 
 def test_mcp_exposes_the_status_tool() -> None:
@@ -142,7 +141,7 @@ def test_mcp_configuration_uses_http_and_dynamic_headers() -> None:
     server = manifest["mcpServers"]["locallore"]
 
     assert server["type"] == "http"
-    assert server["url"] == "http://127.0.0.1:${user_config.port}/mcp"
+    assert server["url"] == "http://127.0.0.1:8765/mcp"
     assert server["headersHelper"] == ('"${CLAUDE_PLUGIN_ROOT}/scripts/mcp-headers.sh"')
 
 

@@ -9,8 +9,8 @@ locallore_require_docker
 
 DATA_DIR=$(locallore_data_dir)
 RUNTIME_ENV=$DATA_DIR/runtime.env
-SESSIONS_DIR=${CLAUDE_PLUGIN_OPTION_projects_directory:-${CLAUDE_PROJECTS_DIR:-${HOME}/.claude/projects}}
-PORT=${CLAUDE_PLUGIN_OPTION_port:-${LOCALLORE_PORT:-8765}}
+SESSIONS_DIR=${CLAUDE_PROJECTS_DIR:-${HOME}/.claude/projects}
+PORT=${LOCALLORE_PORT:-8765}
 VERSION=0.3.0
 
 case "$SESSIONS_DIR" in
@@ -29,7 +29,7 @@ if [ "$PORT" -lt 1024 ] || [ "$PORT" -gt 65535 ]; then
 fi
 if [ ! -d "$SESSIONS_DIR" ]; then
   echo "LocalLore session directory does not exist: $SESSIONS_DIR" >&2
-  echo "Set CLAUDE_PROJECTS_DIR or the plugin projects_directory option." >&2
+  echo "Set CLAUDE_PROJECTS_DIR to use a non-default session directory." >&2
   exit 1
 fi
 
