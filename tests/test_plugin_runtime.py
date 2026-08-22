@@ -78,8 +78,6 @@ def test_status_reports_an_empty_index_before_import() -> None:
     assert status["sessions"] == 0
     assert status["messages"] == 0
     assert status["import_errors"] == []
-    assert status["runtime_network"] == "not confirmed"
-    assert status["transport"] == "streamable-http"
     assert status["refresh_state"] == "idle"
 
 
@@ -90,10 +88,7 @@ def test_compose_is_loopback_only_and_protects_sessions() -> None:
     assert service["container_name"] == "locallore"
     assert service["restart"] == "unless-stopped"
     assert service["command"] == ["serve"]
-    assert service["ports"] == ["127.0.0.1:${LOCALLORE_PORT:-8765}:8000"]
-    assert compose["networks"]["locallore-local"]["driver"] == "bridge"
-    assert "internal" not in compose["networks"]["locallore-local"]
-    assert service["networks"] == ["locallore-local"]
+    assert service["ports"] == ["127.0.0.1:8765:8000"]
     assert service["read_only"] is True
     assert "ALL" in service["cap_drop"]
     assert service["user"] == "65532:65532"
@@ -104,10 +99,7 @@ def test_compose_is_loopback_only_and_protects_sessions() -> None:
         mount for mount in service["volumes"] if mount["target"] == "/sessions"
     )
     assert sessions_mount["read_only"] is True
-    assert service["environment"]["LOCALLORE_MODEL_PATH"] == "/models"
-    assert service["environment"]["LOCALLORE_EMBEDDING_DIMENSION"] == "384"
-    assert "outbound access enabled" in service["environment"]["LOCALLORE_NETWORK_MODE"]
-    assert service["environment"]["LOCALLORE_TRANSPORT"] == "streamable-http"
+    assert "environment" not in service
     assert service["healthcheck"]["test"][-1].endswith("timeout=2).read()")
     assert "noexec" in service["tmpfs"][0]
 

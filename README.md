@@ -49,9 +49,9 @@ Set a non-default session directory when needed:
 CLAUDE_PROJECTS_DIR=/path/to/projects ./scripts/install.sh
 ```
 
-Marketplace installs use port `8765` and `~/.claude/projects` automatically, so
-plugin installation does not ask configuration questions. The manual installer
-continues to accept `CLAUDE_PROJECTS_DIR` for checkout-based installs.
+LocalLore uses the fixed loopback port `8765`. Marketplace installs use
+`~/.claude/projects` automatically, while the manual installer accepts
+`CLAUDE_PROJECTS_DIR` for checkout-based installs.
 
 The installer validates Docker and the session path, creates mode-`0600` runtime
 configuration, builds the image, starts the fixed `locallore` Compose project,
@@ -59,7 +59,7 @@ waits for initial background indexing, and runs production health/security
 checks. Image builds and model downloads never occur during Claude startup.
 
 Load the checkout with `claude --plugin-dir .`. The plugin connects directly to
-`http://127.0.0.1:<port>/mcp`. Docker keeps the installed daemon running across
+`http://127.0.0.1:8765/mcp`. Docker keeps the installed daemon running across
 normal Claude sessions.
 
 ## Background indexing
@@ -104,7 +104,7 @@ it again.
 - There is no telemetry, crash reporting, remote inference fallback, or exposed
   arbitrary SQL.
 
-The Compose network is a standard user-defined bridge because Docker Desktop
+The default Compose network is a standard user-defined bridge because Docker Desktop
 does not reliably publish host ports for `internal: true` networks. Consequently,
 the container technically has outbound network access. LocalLore itself does
 not make runtime network requests, but Docker-level egress isolation is not

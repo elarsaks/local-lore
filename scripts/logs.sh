@@ -6,4 +6,4 @@ SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 . "$SCRIPT_DIR/lib.sh"
 locallore_require_runtime
 locallore_require_docker
-locallore_compose_logs "$@"
+locallore_compose logs "$@" locallore

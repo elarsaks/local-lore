@@ -11,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .. import __version__
 from ..config import Settings
 from ..embeddings import Embedder, FastEmbedder, embedding_model_id
 from ..indexing.discovery import discover
@@ -88,7 +89,6 @@ class LocalLoreRuntime:
         self._snapshot: Snapshot | None = None
         self._model_id: str | None = None
         self._started_monotonic = time.monotonic()
-        self._state_lock = threading.Lock()
         self.refresh_state = "starting"
         self.last_refresh_started_at: str | None = None
         self.last_refresh_completed_at: str | None = None
@@ -162,10 +162,8 @@ class LocalLoreRuntime:
         return False
 
     async def _watch_sources(self) -> None:
-        interval = self.settings.watcher_interval
-        idle_scans = 0
         while not self._stopping:
-            await asyncio.sleep(interval)
+            await asyncio.sleep(self.settings.watcher_interval)
             try:
                 current = await asyncio.to_thread(
                     source_snapshot, self.settings.sessions_path
@@ -175,12 +173,7 @@ class LocalLoreRuntime:
                 logger.warning("LocalLore watcher scan failed: %s", exc)
                 continue
             if current == self._snapshot:
-                idle_scans += 1
-                if idle_scans >= 5:
-                    interval = self.settings.watcher_idle_interval
                 continue
-            idle_scans = 0
-            interval = self.settings.watcher_interval
             self._snapshot = current
             if self.refresh_state != "indexing":
                 self.refresh_state = "debouncing"
@@ -251,21 +244,18 @@ class LocalLoreRuntime:
         return update_index(self.settings, embedder=self.search_embedder)
 
     def status(self) -> RuntimeStatus:
-        with self._state_lock:
-            return {
-                "daemon_version": self.settings.runtime_version,
-                "uptime_seconds": round(time.monotonic() - self._started_monotonic, 3),
-                "refresh_state": self.refresh_state,
-                "last_refresh_started_at": self.last_refresh_started_at,
-                "last_refresh_completed_at": self.last_refresh_completed_at,
-                "last_successful_refresh_at": self.last_successful_refresh_at,
-                "last_refresh_duration_seconds": (self.last_refresh_duration_seconds),
-                "refresh_queued": self._refresh_event.is_set(),
-                "last_refresh_files_added": self.last_stats.files_added,
-                "last_refresh_files_removed": self.last_stats.files_removed,
-                "last_refresh_messages_added": self.last_stats.messages_added,
-                "last_refresh_messages_removed": self.last_stats.messages_removed,
-                "last_background_error": self.last_background_error,
-                "watcher_interval_seconds": self.settings.watcher_interval,
-                "transport": "streamable-http",
-            }
+        return {
+            "daemon_version": __version__,
+            "uptime_seconds": round(time.monotonic() - self._started_monotonic, 3),
+            "refresh_state": self.refresh_state,
+            "last_refresh_started_at": self.last_refresh_started_at,
+            "last_refresh_completed_at": self.last_refresh_completed_at,
+            "last_successful_refresh_at": self.last_successful_refresh_at,
+            "last_refresh_duration_seconds": self.last_refresh_duration_seconds,
+            "refresh_queued": self._refresh_event.is_set(),
+            "last_refresh_files_added": self.last_stats.files_added,
+            "last_refresh_files_removed": self.last_stats.files_removed,
+            "last_refresh_messages_added": self.last_stats.messages_added,
+            "last_refresh_messages_removed": self.last_stats.messages_removed,
+            "last_background_error": self.last_background_error,
+        }
