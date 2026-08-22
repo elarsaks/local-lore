@@ -1,11 +1,27 @@
-# LocalLore 0.3.0 Release Notes
+# LocalLore 0.3.1 Release Notes
 
-LocalLore 0.3.0 adds self-hosted Claude Code marketplace distribution and an
-in-plugin setup command for provisioning or updating the persistent daemon.
+LocalLore 0.3.1 simplifies the persistent local runtime and removes bearer-token
+authentication from its loopback-only MCP endpoint.
 
-## Marketplace installation
+## Simpler local connection
 
-Install LocalLore from its GitHub repository:
+- Claude Code now connects directly to `http://127.0.0.1:8765/mcp` without a
+  token or headers helper.
+- The endpoint remains published only on `127.0.0.1`.
+- HTTP Host and Origin validation remains enabled to protect against browser and
+  DNS-rebinding requests.
+- Local processes running as the current user are trusted and can access
+  LocalLore without authentication.
+
+The release also removes unused port configurability, the unused manual refresh
+endpoint, redundant watcher state, self-reported network metadata, and duplicate
+Docker environment configuration. The MCP tool names and input schemas are
+unchanged.
+
+## Install or update
+
+The marketplace catalog publishes LocalLore 0.3.1. Install it from its GitHub
+repository:
 
 ```text
 /plugin marketplace add elarsaks/local-lore
@@ -14,33 +30,22 @@ Install LocalLore from its GitHub repository:
 /locallore:setup
 ```
 
-The marketplace catalog pins the plugin to version 0.3.0. Marketplace installs
-use the standard Claude projects directory (`~/.claude/projects`) and fixed
-loopback port (`8765`) instead of prompting for configuration. The setup
-command passes the persistent plugin data directory to the installer, builds the
-versioned container image, starts the daemon, waits for initial indexing, and
-runs the production health and security checks.
-
-Rerun `/locallore:setup` after marketplace updates to build and activate the
-matching daemon version.
-
-## Existing installations
-
+Rerun `/locallore:setup` after updating an existing marketplace installation.
 Checkout-based installations remain supported with:
 
 ```bash
 ./scripts/install.sh
 ```
 
-The installer preserves the runtime configuration and migrates the SQLite
-database in place. The three MCP tool names and input schemas are unchanged.
+The setup command builds the versioned container image, starts the daemon, waits
+for initial indexing, and verifies the loopback binding and Host/Origin
+protection.
 
-## Security and networking
+## Privacy and networking
 
-The endpoint remains loopback-only with Host/Origin protection. Session history
-is mounted read-only, and inference uses only the model bundled in the image.
-LocalLore makes no runtime network requests, but the default Compose bridge
-allows outbound connectivity at the container boundary; this release does not
-claim Docker-enforced egress isolation.
+Session history remains mounted read-only, and inference uses only the model
+bundled in the image. LocalLore makes no runtime network requests, but the
+default Compose bridge allows outbound connectivity at the container boundary;
+this release does not claim Docker-enforced egress isolation.
 
-Previous release: [LocalLore 0.2.0](docs/releases/v0.2.0.md).
+Previous release: [LocalLore 0.3.0](https://github.com/elarsaks/local-lore/releases/tag/v0.3.0).

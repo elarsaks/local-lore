@@ -9,7 +9,7 @@
       "name": "locallore",
       "source": "./",
       "description": "Offline local memory for Claude Code sessions",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "category": "developer-tools",
       "tags": [
         "memory",

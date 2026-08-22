@@ -1,6 +1,6 @@
 [project]
 name = "locallore"
-version = "0.3.0"
+version = "0.3.1"
 description = "Offline local memory for Claude Code sessions"
 license = "MIT"
 requires-python = ">=3.12"
