@@ -10,7 +10,7 @@ locallore_require_docker
 DATA_DIR=$(locallore_data_dir)
 RUNTIME_ENV=$DATA_DIR/runtime.env
 SESSIONS_DIR=${CLAUDE_PROJECTS_DIR:-${HOME}/.claude/projects}
-VERSION=0.3.0
+VERSION=0.3.1
 
 case "$SESSIONS_DIR" in
   \~/*) SESSIONS_DIR=$HOME/${SESSIONS_DIR#\~/} ;;

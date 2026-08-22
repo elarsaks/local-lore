@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "locallore",
   "description": "Offline local memory for Claude Code sessions",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "Elar Saks"
   },

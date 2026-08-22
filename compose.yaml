@@ -1,6 +1,6 @@
 services:
   locallore:
-    image: ${LOCALLORE_IMAGE:-locallore:0.3.0}
+    image: ${LOCALLORE_IMAGE:-locallore:0.3.1}
     build:
       context: ${LOCALLORE_PLUGIN_ROOT:-.}
     container_name: locallore
