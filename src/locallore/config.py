@@ -13,13 +13,8 @@ class Settings:
     embedding_model: str
     embedding_dimension: int
     embedding_batch_size: int
-    http_host: str = "0.0.0.0"
-    http_port: int = 8000
-    public_port: int = 8765
     watcher_interval: float = 2.0
-    watcher_idle_interval: float = 2.0
     watcher_debounce: float = 0.5
-    runtime_version: str = "0.3.0"
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -36,13 +31,4 @@ class Settings:
             embedding_batch_size=int(
                 os.environ.get("LOCALLORE_EMBEDDING_BATCH_SIZE", "64")
             ),
-            http_host=os.environ.get("LOCALLORE_HTTP_HOST", "0.0.0.0"),
-            http_port=int(os.environ.get("LOCALLORE_HTTP_PORT", "8000")),
-            public_port=int(os.environ.get("LOCALLORE_PORT", "8765")),
-            watcher_interval=float(os.environ.get("LOCALLORE_WATCH_INTERVAL", "2")),
-            watcher_idle_interval=float(
-                os.environ.get("LOCALLORE_IDLE_WATCH_INTERVAL", "2")
-            ),
-            watcher_debounce=float(os.environ.get("LOCALLORE_WATCH_DEBOUNCE", "0.5")),
-            runtime_version=os.environ.get("LOCALLORE_ACTIVE_VERSION", "0.3.0"),
         )

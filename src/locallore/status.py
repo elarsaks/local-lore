@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import sqlite3
 from pathlib import Path
 from typing import TypedDict
@@ -23,8 +22,6 @@ class RuntimeStatus(TypedDict):
     last_refresh_messages_added: int
     last_refresh_messages_removed: int
     last_background_error: str | None
-    watcher_interval_seconds: float
-    transport: str
 
 
 class Status(RuntimeStatus):
@@ -35,7 +32,6 @@ class Status(RuntimeStatus):
     embedded_messages: int
     embedding_model_id: str | None
     import_errors: list[str]
-    runtime_network: str
 
 
 def get_status(
@@ -81,8 +77,6 @@ def get_status(
         last_refresh_messages_added=0,
         last_refresh_messages_removed=0,
         last_background_error=None,
-        watcher_interval_seconds=float(os.environ.get("LOCALLORE_WATCH_INTERVAL", "2")),
-        transport=os.environ.get("LOCALLORE_TRANSPORT", "streamable-http"),
     )
     return {
         "schema_version": SCHEMA_VERSION,
@@ -92,6 +86,5 @@ def get_status(
         "embedded_messages": embedded_messages,
         "embedding_model_id": embedding_model_id,
         "import_errors": errors,
-        "runtime_network": os.environ.get("LOCALLORE_NETWORK_MODE", "not confirmed"),
         **background,
     }

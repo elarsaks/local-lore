@@ -29,7 +29,6 @@ def runtime_settings(tmp_path: Path) -> Settings:
         3,
         8,
         watcher_interval=0.01,
-        watcher_idle_interval=0.02,
         watcher_debounce=0.01,
     )
 
@@ -164,7 +163,6 @@ def test_runtime_starts_ready_and_initializes_one_model(
     async def exercise() -> None:
         await runtime.start()
         assert await runtime.wait_until_ready(timeout=2)
-        assert runtime.status()["transport"] == "streamable-http"
         await runtime.stop()
 
     asyncio.run(exercise())

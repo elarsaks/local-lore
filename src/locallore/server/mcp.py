@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -15,8 +14,6 @@ from ..search import ContextResponse, SearchResponse, get_context, search_messag
 from ..status import Status, get_status
 from ..storage.db import connect
 from .runtime import LocalLoreRuntime
-
-logger = logging.getLogger(__name__)
 
 _runtime: LocalLoreRuntime | None = None
 
@@ -36,33 +33,17 @@ async def _daemon_lifespan(app: Starlette) -> AsyncIterator[None]:
         await runtime.stop()
 
 
-def _transport_security(settings: Settings) -> TransportSecuritySettings:
-    port = settings.public_port
-    return TransportSecuritySettings(
-        enable_dns_rebinding_protection=True,
-        allowed_hosts=[
-            f"127.0.0.1:{port}",
-            f"localhost:{port}",
-            f"[::1]:{port}",
-        ],
-        allowed_origins=[
-            f"http://127.0.0.1:{port}",
-            f"http://localhost:{port}",
-            f"http://[::1]:{port}",
-        ],
-    )
-
-
-_initial_settings = Settings.from_env()
 mcp = FastMCP(
     "LocalLore",
     instructions="Offline memory for local Claude Code sessions.",
-    host=_initial_settings.http_host,
-    port=_initial_settings.http_port,
     streamable_http_path="/mcp",
     stateless_http=True,
     json_response=True,
-    transport_security=_transport_security(_initial_settings),
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=["127.0.0.1:8765"],
+        allowed_origins=["http://127.0.0.1:8765"],
+    ),
 )
 
 
@@ -84,16 +65,6 @@ async def statusz(_request: Request) -> JSONResponse:
         runtime.status() if runtime is not None else None,
     )
     return JSONResponse(status)
-
-
-@mcp.custom_route(  # type: ignore[untyped-decorator]
-    "/admin/refresh", methods=["POST"], include_in_schema=False
-)
-async def request_refresh(_request: Request) -> JSONResponse:
-    if _runtime is None:
-        return JSONResponse({"error": "runtime is not ready"}, status_code=503)
-    _runtime.request_refresh()
-    return JSONResponse({"queued": True}, status_code=202)
 
 
 @mcp.tool()
@@ -148,7 +119,7 @@ def locallore_context(
         )
 
 
-def run_http_server(settings: Settings) -> None:
+def run_http_server() -> None:
     """Serve the persistent, multi-client Streamable HTTP transport."""
     import uvicorn
 
@@ -157,7 +128,7 @@ def run_http_server(settings: Settings) -> None:
     app.router.lifespan_context = _daemon_lifespan
     uvicorn.run(
         app,
-        host=settings.http_host,
-        port=settings.http_port,
+        host="0.0.0.0",
+        port=8000,
         log_level="info",
     )

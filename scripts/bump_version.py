@@ -26,8 +26,7 @@ class VersionLocation:
 VERSION_LOCATIONS = (
     VersionLocation("pyproject.toml", 'version = "{version}"', 1),
     VersionLocation("src/locallore/__init__.py", '__version__ = "{version}"', 1),
-    VersionLocation("src/locallore/config.py", '"{version}"', 2),
-    VersionLocation("compose.yaml", "{version}", 2),
+    VersionLocation("compose.yaml", "{version}", 1),
     VersionLocation("scripts/install.sh", "VERSION={version}", 1),
     VersionLocation(".claude-plugin/plugin.json", '"version": "{version}"', 1),
     VersionLocation(".claude-plugin/marketplace.json", '"version": "{version}"', 1),

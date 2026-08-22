@@ -15,8 +15,8 @@ Install LocalLore from its GitHub repository:
 ```
 
 The marketplace catalog pins the plugin to version 0.3.0. Marketplace installs
-use the standard Claude projects directory (`~/.claude/projects`) and loopback
-port (`8765`) automatically instead of prompting for configuration. The setup
+use the standard Claude projects directory (`~/.claude/projects`) and fixed
+loopback port (`8765`) instead of prompting for configuration. The setup
 command passes the persistent plugin data directory to the installer, builds the
 versioned container image, starts the daemon, waits for initial indexing, and
 runs the production health and security checks.
@@ -39,7 +39,7 @@ database in place. The three MCP tool names and input schemas are unchanged.
 
 The endpoint remains loopback-only with Host/Origin protection. Session history
 is mounted read-only, and inference uses only the model bundled in the image.
-LocalLore makes no runtime network requests, but the standard Docker bridge
+LocalLore makes no runtime network requests, but the default Compose bridge
 allows outbound connectivity at the container boundary; this release does not
 claim Docker-enforced egress isolation.
 

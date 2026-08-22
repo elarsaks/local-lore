@@ -28,10 +28,6 @@ locallore_env_value() {
   sed -n "s/^${key}=//p" "$file" | sed -n '1p'
 }
 
-locallore_port() {
-  locallore_env_value LOCALLORE_PORT "$LOCALLORE_RUNTIME_ENV"
-}
-
 locallore_require_runtime() {
   LOCALLORE_DATA_DIR=$(locallore_data_dir)
   LOCALLORE_RUNTIME_ENV=$LOCALLORE_DATA_DIR/runtime.env
@@ -57,10 +53,6 @@ locallore_compose() {
     --project-directory "$LOCALLORE_ACTIVE_ROOT" \
     --env-file "$LOCALLORE_RUNTIME_ENV" \
     -f "$LOCALLORE_ACTIVE_ROOT/compose.yaml" "$@"
-}
-
-locallore_compose_logs() {
-  locallore_compose logs "$@" locallore
 }
 
 locallore_require_docker() {

@@ -13,22 +13,6 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-    environment:
-      HOME: /tmp/home
-      LOCALLORE_DB: /data/locallore.db
-      LOCALLORE_SESSIONS: /sessions
-      LOCALLORE_MODEL_PATH: /models
-      LOCALLORE_EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
-      LOCALLORE_EMBEDDING_DIMENSION: "384"
-      LOCALLORE_NETWORK_MODE: loopback-published Docker bridge; outbound access enabled
-      LOCALLORE_TRANSPORT: streamable-http
-      LOCALLORE_HTTP_HOST: 0.0.0.0
-      LOCALLORE_HTTP_PORT: "8000"
-      LOCALLORE_PORT: ${LOCALLORE_PORT:-8765}
-      LOCALLORE_ACTIVE_VERSION: ${LOCALLORE_ACTIVE_VERSION:-0.3.0}
-      LOCALLORE_WATCH_INTERVAL: ${LOCALLORE_WATCH_INTERVAL:-2}
-      LOCALLORE_IDLE_WATCH_INTERVAL: ${LOCALLORE_IDLE_WATCH_INTERVAL:-2}
-      LOCALLORE_WATCH_DEBOUNCE: ${LOCALLORE_WATCH_DEBOUNCE:-0.5}
     volumes:
       - type: bind
         source: ${CLAUDE_PROJECTS_DIR}
@@ -40,9 +24,7 @@ services:
     tmpfs:
       - /tmp:size=256m,uid=65532,gid=65532,noexec,nosuid,nodev
     ports:
-      - "127.0.0.1:${LOCALLORE_PORT:-8765}:8000"
-    networks:
-      - locallore-local
+      - "127.0.0.1:8765:8000"
     healthcheck:
       test:
         - CMD
@@ -57,7 +39,3 @@ services:
 
 volumes:
   locallore-data:
-
-networks:
-  locallore-local:
-    driver: bridge

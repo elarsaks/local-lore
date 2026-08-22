@@ -2,12 +2,7 @@ FROM python:3.12.13-slim-bookworm@sha256:d50fb7611f86d04a3b0471b46d7557818d88983
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    HOME=/tmp/home \
-    LOCALLORE_DB=/data/locallore.db \
-    LOCALLORE_SESSIONS=/sessions \
-    LOCALLORE_MODEL_PATH=/models \
-    LOCALLORE_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5 \
-    LOCALLORE_EMBEDDING_DIMENSION=384
+    HOME=/tmp/home
 
 WORKDIR /app
 

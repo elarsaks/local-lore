@@ -11,7 +11,6 @@ SCRIPT = ROOT / "scripts" / "bump_version.py"
 VERSION_FILES = (
     "pyproject.toml",
     "src/locallore/__init__.py",
-    "src/locallore/config.py",
     "compose.yaml",
     "scripts/install.sh",
     ".claude-plugin/plugin.json",
@@ -57,7 +56,7 @@ def test_version_bump_updates_every_location(tmp_path: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert (
-        f"updated 8 files from {CURRENT_VERSION} to {TARGET_VERSION}" in result.stdout
+        f"updated 7 files from {CURRENT_VERSION} to {TARGET_VERSION}" in result.stdout
     )
     assert run_version_command("--check", root=tmp_path).returncode == 0
     for relative_path in VERSION_FILES:

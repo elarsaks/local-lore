@@ -32,12 +32,13 @@ def main() -> None:
         stream=sys.stderr,
     )
     try:
-        settings = Settings.from_env()
         if args.command == "serve":
-            run_http_server(settings)
-        elif args.command == "index":
+            run_http_server()
+            return
+        settings = Settings.from_env()
+        if args.command == "index":
             index(settings)
-        elif args.command == "doctor":
+        else:
             report = run_doctor(settings)
             for check in report.checks:
                 print(f"ok: {check}", file=sys.stderr)
