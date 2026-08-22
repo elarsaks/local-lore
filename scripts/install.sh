@@ -35,17 +35,6 @@ fi
 
 mkdir -p "$DATA_DIR"
 chmod 700 "$DATA_DIR"
-TOKEN=
-if [ -f "$RUNTIME_ENV" ]; then
-  TOKEN=$(locallore_env_value LOCALLORE_TOKEN "$RUNTIME_ENV")
-fi
-if [ -z "$TOKEN" ]; then
-  if command -v openssl >/dev/null 2>&1; then
-    TOKEN=$(openssl rand -hex 32)
-  else
-    TOKEN=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
-  fi
-fi
 
 TEMP_ENV=$DATA_DIR/runtime.env.pending
 umask 077
@@ -53,7 +42,6 @@ umask 077
   printf 'LOCALLORE_PLUGIN_ROOT=%s\n' "$LOCALLORE_PLUGIN_ROOT"
   printf 'LOCALLORE_IMAGE=locallore:%s\n' "$VERSION"
   printf 'LOCALLORE_ACTIVE_VERSION=%s\n' "$VERSION"
-  printf 'LOCALLORE_TOKEN=%s\n' "$TOKEN"
   printf 'LOCALLORE_PORT=%s\n' "$PORT"
   printf 'CLAUDE_PROJECTS_DIR=%s\n' "$SESSIONS_DIR"
   printf 'LOCALLORE_WATCH_INTERVAL=2\n'
@@ -92,7 +80,6 @@ deadline=150
 elapsed=0
 while [ "$deadline" -gt 0 ]; do
   status=$(curl -fsS --max-time 2 \
-    -H "Authorization: Bearer $TOKEN" \
     "http://127.0.0.1:$PORT/statusz" 2>/dev/null || true)
   if printf '%s' "$status" | grep -q '"refresh_state":"idle"' &&
      printf '%s' "$status" | grep -q '"last_successful_refresh_at":"'; then

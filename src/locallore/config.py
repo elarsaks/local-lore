@@ -16,7 +16,6 @@ class Settings:
     http_host: str = "0.0.0.0"
     http_port: int = 8000
     public_port: int = 8765
-    bearer_token: str = ""
     watcher_interval: float = 2.0
     watcher_idle_interval: float = 2.0
     watcher_debounce: float = 0.5
@@ -40,7 +39,6 @@ class Settings:
             http_host=os.environ.get("LOCALLORE_HTTP_HOST", "0.0.0.0"),
             http_port=int(os.environ.get("LOCALLORE_HTTP_PORT", "8000")),
             public_port=int(os.environ.get("LOCALLORE_PORT", "8765")),
-            bearer_token=os.environ.get("LOCALLORE_TOKEN", ""),
             watcher_interval=float(os.environ.get("LOCALLORE_WATCH_INTERVAL", "2")),
             watcher_idle_interval=float(
                 os.environ.get("LOCALLORE_IDLE_WATCH_INTERVAL", "2")

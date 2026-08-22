@@ -9,8 +9,7 @@
   "mcpServers": {
     "locallore": {
       "type": "http",
-      "url": "http://127.0.0.1:8765/mcp",
-      "headersHelper": "\"${CLAUDE_PLUGIN_ROOT}/scripts/mcp-headers.sh\""
+      "url": "http://127.0.0.1:8765/mcp"
     }
   }
 }

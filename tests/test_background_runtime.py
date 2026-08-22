@@ -6,17 +6,11 @@ import os
 import threading
 from pathlib import Path
 
-from starlette.requests import Request
 from starlette.testclient import TestClient
 
 from locallore.config import Settings
 from locallore.embeddings import MODEL_CHECKSUM_FILE
 from locallore.indexing.importer import ImportResult
-from locallore.server.auth import (
-    LocalBearerTokenVerifier,
-    bearer_token_matches,
-    is_authorized,
-)
 from locallore.server.mcp import mcp
 from locallore.server.runtime import LocalLoreRuntime, source_snapshot
 
@@ -178,44 +172,38 @@ def test_runtime_starts_ready_and_initializes_one_model(
     assert initializations == 1
 
 
-def test_local_bearer_auth_and_transport_security(
-    monkeypatch,
-) -> None:
-    token = "a" * 64
-    monkeypatch.setenv("LOCALLORE_TOKEN", token)
-    verifier = LocalBearerTokenVerifier()
-
-    assert bearer_token_matches(f"Bearer {token}", token)
-    assert not bearer_token_matches("Bearer wrong", token)
-    assert is_authorized(
-        Request(
-            {
-                "type": "http",
-                "headers": [(b"authorization", f"Bearer {token}".encode())],
-            }
-        )
-    )
-    assert not is_authorized(Request({"type": "http", "headers": []}))
-    assert asyncio.run(verifier.verify_token("wrong")) is None
-    assert asyncio.run(verifier.verify_token(token)) is not None
-
+def test_local_unauthenticated_transport_security() -> None:
     with TestClient(
         mcp.streamable_http_app(),
         base_url="http://127.0.0.1:8765",
     ) as client:
-        assert client.post("/mcp", json={}).status_code == 401
-        auth = {"Authorization": f"Bearer {token}"}
+        initialize = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "test", "version": "1"},
+            },
+        }
         assert (
             client.post(
-                "/mcp", json={}, headers={**auth, "Host": "evil.example"}
+                "/mcp",
+                json=initialize,
+                headers={"Accept": "application/json"},
             ).status_code
+            == 200
+        )
+        assert (
+            client.post("/mcp", json={}, headers={"Host": "evil.example"}).status_code
             == 421
         )
         assert (
             client.post(
                 "/mcp",
                 json={},
-                headers={**auth, "Origin": "https://evil.example"},
+                headers={"Origin": "https://evil.example"},
             ).status_code
             == 403
         )

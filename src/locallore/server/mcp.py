@@ -4,10 +4,8 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
-from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -16,7 +14,6 @@ from ..config import Settings
 from ..search import ContextResponse, SearchResponse, get_context, search_messages
 from ..status import Status, get_status
 from ..storage.db import connect
-from .auth import LocalBearerTokenVerifier, is_authorized
 from .runtime import LocalLoreRuntime
 
 logger = logging.getLogger(__name__)
@@ -65,11 +62,6 @@ mcp = FastMCP(
     streamable_http_path="/mcp",
     stateless_http=True,
     json_response=True,
-    token_verifier=LocalBearerTokenVerifier(),
-    auth=AuthSettings(
-        issuer_url=AnyHttpUrl(f"http://127.0.0.1:{_initial_settings.public_port}/"),
-        resource_server_url=None,
-    ),
     transport_security=_transport_security(_initial_settings),
 )
 
@@ -85,9 +77,7 @@ async def healthz(_request: Request) -> JSONResponse:
 @mcp.custom_route(  # type: ignore[untyped-decorator]
     "/statusz", methods=["GET"], include_in_schema=False
 )
-async def statusz(request: Request) -> JSONResponse:
-    if not is_authorized(request):
-        return JSONResponse({"error": "unauthorized"}, status_code=401)
+async def statusz(_request: Request) -> JSONResponse:
     runtime = _runtime
     status = get_status(
         Settings.from_env().database_path,
@@ -99,9 +89,7 @@ async def statusz(request: Request) -> JSONResponse:
 @mcp.custom_route(  # type: ignore[untyped-decorator]
     "/admin/refresh", methods=["POST"], include_in_schema=False
 )
-async def request_refresh(request: Request) -> JSONResponse:
-    if not is_authorized(request):
-        return JSONResponse({"error": "unauthorized"}, status_code=401)
+async def request_refresh(_request: Request) -> JSONResponse:
     if _runtime is None:
         return JSONResponse({"error": "runtime is not ready"}, status_code=503)
     _runtime.request_refresh()
@@ -162,10 +150,6 @@ def locallore_context(
 
 def run_http_server(settings: Settings) -> None:
     """Serve the persistent, multi-client Streamable HTTP transport."""
-    if len(settings.bearer_token) < 32:
-        raise ValueError(
-            "LOCALLORE_TOKEN is missing or too short; run ./scripts/install.sh"
-        )
     import uvicorn
 
     app = mcp.streamable_http_app()

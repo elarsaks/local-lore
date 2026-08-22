@@ -2,7 +2,7 @@
 
 LocalLore is a private memory layer for Claude Code. One persistent local
 daemon incrementally indexes Claude Code session history and serves hybrid
-SQLite FTS5 and local-embedding search to every Claude session over authenticated
+SQLite FTS5 and local-embedding search to every Claude session over loopback-only
 MCP Streamable HTTP.
 
 This repository is a finished, pinned snapshot and is not actively maintained.
@@ -53,16 +53,14 @@ Marketplace installs use port `8765` and `~/.claude/projects` automatically, so
 plugin installation does not ask configuration questions. The manual installer
 continues to accept `CLAUDE_PROJECTS_DIR` for checkout-based installs.
 
-The installer validates Docker and the session path, preserves or creates a
-mode-`0600` random bearer token, builds the image, starts the fixed
-`locallore` Compose project, waits for initial background indexing, and runs
-production health/security checks. Image builds and model downloads never occur
-during Claude startup.
+The installer validates Docker and the session path, creates mode-`0600` runtime
+configuration, builds the image, starts the fixed `locallore` Compose project,
+waits for initial background indexing, and runs production health/security
+checks. Image builds and model downloads never occur during Claude startup.
 
 Load the checkout with `claude --plugin-dir .`. The plugin connects directly to
-`http://127.0.0.1:<port>/mcp`; its `headersHelper` supplies authentication
-automatically. If the installed daemon is absent, the helper starts the active
-image without rebuilding it.
+`http://127.0.0.1:<port>/mcp`. Docker keeps the installed daemon running across
+normal Claude sessions.
 
 ## Background indexing
 
@@ -86,19 +84,18 @@ embedding and interactive queries.
 ```
 
 Indexing runs automatically in the daemon. `uninstall.sh` asks for confirmation
-before deleting the container, derived index volume, runtime configuration, and
-bearer token; Claude session files are never deleted.
+before deleting the container, derived index volume, and runtime configuration;
+Claude session files are never deleted.
 
 Normal Claude sessions connect to the persistent HTTP daemon. If its container
-is stopped but the installed image is available, the authentication helper
-starts the same service without rebuilding it.
+is stopped manually, rerun `/locallore:setup` or `./scripts/install.sh` to start
+it again.
 
 ## Privacy and security
 
 - The MCP port is published only on `127.0.0.1`.
-- A random installation-scoped bearer token protects `/mcp`, `/statusz`, and
-  `/admin/refresh`; `/healthz` reveals only liveness.
-- Unexpected HTTP `Host` and browser `Origin` values are rejected.
+- Unexpected HTTP `Host` and browser `Origin` values are rejected to protect the
+  loopback-only endpoint from browser and DNS-rebinding requests.
 - Session history is bind-mounted read-only.
 - The container filesystem is read-only, runs as UID/GID 65532, drops all Linux
   capabilities, forbids privilege escalation, limits PIDs, and uses bounded
@@ -111,7 +108,9 @@ The Compose network is a standard user-defined bridge because Docker Desktop
 does not reliably publish host ports for `internal: true` networks. Consequently,
 the container technically has outbound network access. LocalLore itself does
 not make runtime network requests, but Docker-level egress isolation is not
-claimed. The bearer token and loopback binding protect the local HTTP endpoint.
+claimed. Loopback binding and Host/Origin validation protect the local HTTP
+endpoint. Local processes running as the current user are trusted and can access
+LocalLore without authentication.
 
 The SQLite volume contains plaintext conversation text and embeddings. LocalLore
 does not provide encryption at rest; use host disk encryption and OS access
@@ -126,5 +125,4 @@ claude plugin validate .
 ```
 
 `doctor.sh` checks configuration, migrations, FTS5, model inference, one running
-service container, loopback-only publication, bearer enforcement, and Host/Origin
-protection.
+service container, loopback-only publication, and Host/Origin protection.

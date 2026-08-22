@@ -32,13 +32,13 @@ Checkout-based installations remain supported with:
 ./scripts/install.sh
 ```
 
-The installer preserves the existing bearer token and migrates the SQLite
+The installer preserves the runtime configuration and migrates the SQLite
 database in place. The three MCP tool names and input schemas are unchanged.
 
 ## Security and networking
 
-The endpoint remains loopback-only and bearer-authenticated. Session history is
-mounted read-only, and inference uses only the model bundled in the image.
+The endpoint remains loopback-only with Host/Origin protection. Session history
+is mounted read-only, and inference uses only the model bundled in the image.
 LocalLore makes no runtime network requests, but the standard Docker bridge
 allows outbound connectivity at the container boundary; this release does not
 claim Docker-enforced egress isolation.

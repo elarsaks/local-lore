@@ -108,14 +108,12 @@ def test_compose_is_loopback_only_and_protects_sessions() -> None:
     assert service["environment"]["LOCALLORE_EMBEDDING_DIMENSION"] == "384"
     assert "outbound access enabled" in service["environment"]["LOCALLORE_NETWORK_MODE"]
     assert service["environment"]["LOCALLORE_TRANSPORT"] == "streamable-http"
-    assert "LOCALLORE_TOKEN" in service["environment"]
     assert service["healthcheck"]["test"][-1].endswith("timeout=2).read()")
     assert "noexec" in service["tmpfs"][0]
 
 
 def test_launcher_scripts_are_executable_and_use_strict_mode() -> None:
     for name in (
-        "mcp-headers.sh",
         "install.sh",
         "doctor.sh",
         "status.sh",
@@ -152,19 +150,18 @@ def test_build_and_workflow_dependencies_are_immutable() -> None:
     assert all("==" in requirement for requirement in requirements)
 
 
-def test_mcp_configuration_uses_http_and_dynamic_headers() -> None:
+def test_mcp_configuration_uses_unauthenticated_loopback_http() -> None:
     manifest = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
     server = manifest["mcpServers"]["locallore"]
 
     assert server["type"] == "http"
     assert server["url"] == "http://127.0.0.1:8765/mcp"
-    assert server["headersHelper"] == ('"${CLAUDE_PLUGIN_ROOT}/scripts/mcp-headers.sh"')
+    assert "headersHelper" not in server
 
 
 def test_lifecycle_scripts_use_the_fixed_compose_project() -> None:
     library = (ROOT / "scripts/lib.sh").read_text()
     assert "docker compose -p locallore" in library
-    assert "--no-build" in (ROOT / "scripts/mcp-headers.sh").read_text()
     assert "compose run" not in "\n".join(
         script.read_text() for script in (ROOT / "scripts").glob("*.sh")
     )
