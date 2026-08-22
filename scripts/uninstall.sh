@@ -20,5 +20,5 @@ locallore_compose down --volumes --remove-orphans
 rm -f "$LOCALLORE_RUNTIME_ENV"
 rmdir "$LOCALLORE_DATA_DIR" 2>/dev/null || true
 echo "LocalLore container and derived SQLite index volume were deleted."
-echo "LocalLore runtime configuration and bearer token were deleted."
+echo "LocalLore runtime configuration was deleted."
 echo "Claude session history was not modified."

@@ -10,7 +10,6 @@ locallore_compose exec -T locallore \
   /app/.venv/bin/python -m locallore doctor
 
 PORT=$(locallore_port)
-TOKEN=$(locallore_token)
 container_ids=$(docker ps -q \
   --filter label=com.docker.compose.project=locallore \
   --filter label=com.docker.compose.service=locallore)
@@ -24,24 +23,20 @@ if [ "$binding" != "127.0.0.1:$PORT" ]; then
   exit 1
 fi
 curl -fsS --max-time 3 "http://127.0.0.1:$PORT/healthz" >/dev/null
-unauthorized=$(curl -sS --max-time 3 -o /dev/null -w '%{http_code}' \
-  -X POST "http://127.0.0.1:$PORT/mcp")
 bad_host=$(curl -sS --max-time 3 -o /dev/null -w '%{http_code}' \
-  -X POST -H "Authorization: Bearer $TOKEN" -H "Host: invalid.example" \
+  -X POST -H "Host: invalid.example" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" -d '{}' \
   "http://127.0.0.1:$PORT/mcp")
 bad_origin=$(curl -sS --max-time 3 -o /dev/null -w '%{http_code}' \
-  -X POST -H "Authorization: Bearer $TOKEN" \
-  -H "Origin: https://invalid.example" \
+  -X POST -H "Origin: https://invalid.example" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" -d '{}' \
   "http://127.0.0.1:$PORT/mcp")
-if [ "$unauthorized" != "401" ] ||
-   [ "$bad_host" != "421" ] ||
+if [ "$bad_host" != "421" ] ||
    [ "$bad_origin" != "403" ]; then
   echo "LocalLore HTTP security checks failed " \
-    "(unauthorized=$unauthorized host=$bad_host origin=$bad_origin)." >&2
+    "(host=$bad_host origin=$bad_origin)." >&2
   exit 1
 fi
-echo "ok: exactly one loopback-only, authenticated LocalLore daemon"
+echo "ok: exactly one loopback-only LocalLore daemon with Host/Origin protection"

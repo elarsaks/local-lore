@@ -32,10 +32,6 @@ locallore_port() {
   locallore_env_value LOCALLORE_PORT "$LOCALLORE_RUNTIME_ENV"
 }
 
-locallore_token() {
-  locallore_env_value LOCALLORE_TOKEN "$LOCALLORE_RUNTIME_ENV"
-}
-
 locallore_require_runtime() {
   LOCALLORE_DATA_DIR=$(locallore_data_dir)
   LOCALLORE_RUNTIME_ENV=$LOCALLORE_DATA_DIR/runtime.env
@@ -76,9 +72,4 @@ locallore_require_docker() {
     echo "LocalLore requires Docker Compose v2 and a running Docker daemon." >&2
     exit 1
   fi
-}
-
-locallore_print_headers() {
-  token=$1
-  printf '{"Authorization":"Bearer %s"}\n' "$token"
 }
