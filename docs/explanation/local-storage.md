@@ -28,7 +28,7 @@ erDiagram
         text content_hash
     }
     EMBEDDINGS {
-        text message_id PK_FK
+        text message_id PK, FK
         text model_id
         integer dimension
         blob vector
