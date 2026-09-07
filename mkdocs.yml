@@ -1,0 +1,115 @@
+site_name: LocalLore
+site_description: Private, offline memory for Claude Code sessions
+site_url: https://elarsaks.github.io/local-lore/
+repo_url: https://github.com/elarsaks/local-lore
+repo_name: elarsaks/local-lore
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - content.tabs.link
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            members_order: source
+            merge_init_into_class: true
+            show_root_heading: true
+            show_source: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - First search: tutorials/first-search.md
+  - How-to guides:
+      - Install and operate: how-to/install-and-operate.md
+      - Search session history: how-to/search-session-history.md
+      - Troubleshoot: how-to/troubleshoot.md
+      - Contribute: development.md
+  - Explanation:
+      - Architecture: explanation/architecture.md
+      - MCP: explanation/mcp.md
+      - RAG and LocalLore: explanation/rag.md
+      - Indexing: explanation/indexing.md
+      - Embeddings and hybrid search: explanation/hybrid-search.md
+      - Local storage and privacy: explanation/local-storage.md
+  - Reference:
+      - Configuration: reference/configuration.md
+      - Commands and tools: reference/interfaces.md
+      - Python API:
+          - Overview: reference/api/index.md
+          - Configuration: reference/api/config.md
+          - Embeddings: reference/api/embeddings.md
+          - Search: reference/api/search.md
+          - Status and diagnostics: reference/api/status.md
+          - Indexing:
+              - Discovery: reference/api/indexing-discovery.md
+              - Parser: reference/api/indexing-parser.md
+              - Importer: reference/api/indexing-importer.md
+              - Pipeline: reference/api/indexing-pipeline.md
+          - Storage: reference/api/storage.md
+          - Server runtime: reference/api/server-runtime.md
+          - MCP server: reference/api/server-mcp.md
+
+validation:
+  links:
+    absolute_links: relative_to_docs
+    anchors: warn
+    unrecognized_links: warn
+
+copyright: Copyright &copy; 2026 Elar Saks

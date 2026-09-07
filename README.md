@@ -8,6 +8,19 @@ MCP Streamable HTTP.
 This repository is a finished, pinned snapshot and is not actively maintained.
 Review its locked dependencies and security assumptions before adopting it.
 
+## Documentation
+
+Read the [LocalLore documentation](https://elarsaks.github.io/local-lore/) for
+a guided tutorial, operational how-to guides, architecture and concept
+explanations, and generated Python API reference pages.
+
+Preview the documentation locally with:
+
+```bash
+uv sync --locked --group docs
+uv run --group docs mkdocs serve
+```
+
 ## Requirements
 
 - Claude Code with plugin support

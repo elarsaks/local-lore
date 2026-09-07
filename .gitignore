@@ -18,6 +18,7 @@ htmlcov/
 # Build artifacts
 build/
 dist/
+site/
 *.egg-info/
 
 # Local environment and editor files
