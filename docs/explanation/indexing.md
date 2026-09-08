@@ -1,3 +1,7 @@
+---
+description: Learn how LocalLore incrementally indexes appended, replaced, renamed, and deleted Claude Code session files.
+---
+
 # Incremental indexing
 
 Indexing converts append-oriented JSONL session files into structured,

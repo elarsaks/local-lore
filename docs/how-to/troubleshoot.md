@@ -1,3 +1,7 @@
+---
+description: Diagnose LocalLore installation, indexing, container, model, and Claude Code connection problems.
+---
+
 # Troubleshoot LocalLore
 
 ## Run the diagnostic suite

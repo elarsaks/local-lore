@@ -1,3 +1,7 @@
+---
+description: Install, update, inspect, troubleshoot, and uninstall the LocalLore service for Claude Code.
+---
+
 # Install and operate LocalLore
 
 ## Install from a checkout

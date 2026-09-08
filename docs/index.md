@@ -1,3 +1,8 @@
+---
+title: Private local memory for Claude Code
+description: Install LocalLore and learn RAG, embeddings, hybrid search, indexing, and MCP through a working local Claude Code memory system.
+---
+
 # LocalLore documentation
 
 LocalLore gives Claude Code a private memory of earlier coding sessions. A

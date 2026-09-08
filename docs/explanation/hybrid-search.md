@@ -1,3 +1,7 @@
+---
+description: Learn how LocalLore combines BM25 keyword results and embedding similarity with reciprocal rank fusion.
+---
+
 # Embeddings and hybrid search
 
 Keyword search and semantic search answer different versions of “relevant.”

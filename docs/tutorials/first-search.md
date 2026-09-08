@@ -1,3 +1,7 @@
+---
+description: Install LocalLore, index your Claude Code sessions, and retrieve your first result with private local hybrid search.
+---
+
 # Retrieve your first memory
 
 This tutorial takes you from a fresh installation to a search result returned

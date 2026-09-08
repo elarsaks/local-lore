@@ -1,3 +1,7 @@
+---
+description: Search earlier Claude Code sessions by meaning, keyword, project, date, role, or file with LocalLore.
+---
+
 # Search session history
 
 Use `locallore_search` when you remember a concept, phrase, project, time

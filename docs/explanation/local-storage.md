@@ -1,3 +1,7 @@
+---
+description: Understand what LocalLore stores, which data remains plaintext, and the privacy boundaries of its local architecture.
+---
+
 # Local storage and privacy
 
 LocalLore stores two categories of data locally:
