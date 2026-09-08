@@ -1,3 +1,7 @@
+---
+description: Learn how LocalLore exposes private local session search to Claude Code through the Model Context Protocol.
+---
+
 # Model Context Protocol (MCP)
 
 The Model Context Protocol is a standard way for an AI application to discover

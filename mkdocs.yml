@@ -1,5 +1,6 @@
 site_name: LocalLore
-site_description: Private, offline memory for Claude Code sessions
+site_description: Learn RAG, embeddings, hybrid search, and MCP with a private, local memory system for Claude Code sessions.
+site_author: Elar Saks
 site_url: https://elarsaks.github.io/local-lore/
 repo_url: https://github.com/elarsaks/local-lore
 repo_name: elarsaks/local-lore
@@ -7,6 +8,7 @@ edit_uri: edit/master/docs/
 
 theme:
   name: material
+  custom_dir: overrides
   features:
     - content.code.copy
     - content.tabs.link

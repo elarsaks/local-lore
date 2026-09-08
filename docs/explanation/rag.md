@@ -1,3 +1,7 @@
+---
+description: Learn retrieval-augmented generation through LocalLore's ingestion, retrieval, context, and answer-generation flow.
+---
+
 # RAG and LocalLore
 
 Retrieval-augmented generation (RAG) gives a language model relevant external

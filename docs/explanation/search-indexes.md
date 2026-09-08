@@ -1,3 +1,7 @@
+---
+description: Learn how inverted indexes, embedding vectors, BM25, and cosine similarity enable keyword and semantic search.
+---
+
 # Keyword and vector search
 
 A search system needs a quick way to decide which stored messages might answer

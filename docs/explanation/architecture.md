@@ -1,3 +1,7 @@
+---
+description: Explore the LocalLore architecture for local session indexing, hybrid retrieval, SQLite storage, and MCP access.
+---
+
 # Architecture
 
 LocalLore is one local daemon with four responsibilities: observe session

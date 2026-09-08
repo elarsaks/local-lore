@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  {% if page and page.meta and page.meta.description %}
+    {% set description = page.meta.description %}
+  {% else %}
+    {% set description = config.site_description %}
+  {% endif %}
+  {% if page and page.meta and page.meta.title %}
+    {% set social_title = page.meta.title ~ " · " ~ config.site_name %}
+  {% elif page and page.title %}
+    {% set social_title = page.title ~ " · " ~ config.site_name %}
+  {% else %}
+    {% set social_title = config.site_name %}
+  {% endif %}
+  {% if page and page.canonical_url %}
+    {% set canonical_url = page.canonical_url %}
+  {% else %}
+    {% set canonical_url = config.site_url %}
+  {% endif %}
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="{{ social_title }}">
+  <meta property="og:description" content="{{ description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:image" content="{{ config.site_url }}assets/images/local-lore-social-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1531">
+  <meta property="og:image:height" content="916">
+  <meta property="og:image:alt" content="The LocalLore documentation website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ social_title }}">
+  <meta name="twitter:description" content="{{ description }}">
+  <meta name="twitter:image" content="{{ config.site_url }}assets/images/local-lore-social-preview.png">
+  <meta name="twitter:image:alt" content="The LocalLore documentation website">
+{% endblock %}
