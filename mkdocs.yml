@@ -86,6 +86,7 @@ nav:
       - MCP: explanation/mcp.md
       - RAG and LocalLore: explanation/rag.md
       - Indexing: explanation/indexing.md
+      - Keyword and vector search: explanation/search-indexes.md
       - Embeddings and hybrid search: explanation/hybrid-search.md
       - Local storage and privacy: explanation/local-storage.md
   - Reference:

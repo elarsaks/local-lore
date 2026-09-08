@@ -19,7 +19,9 @@ Run these commands in Claude Code:
 Setup builds the pinned container image, starts the persistent daemon, waits
 for the initial index, and runs health and security checks. The first build
 needs internet access to obtain pinned Python packages and the embedding model.
-Runtime inference is local-only.
+The complete first setup can take 30 minutes or longer depending on the network,
+hardware, Docker build cache, and amount of session history. Keep Docker running
+and allow the setup command to finish. Runtime inference is local-only.
 
 ## 2. Check the index
 
