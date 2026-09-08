@@ -3,6 +3,10 @@
 Keyword search and semantic search answer different versions of “relevant.”
 LocalLore runs both, then combines their rankings.
 
+If these retrieval methods are new to you, start with
+[Keyword and vector search](search-indexes.md), which explains inverted indexes,
+embedding vectors, and how they differ.
+
 ## Embeddings
 
 An embedding model maps text to a fixed-length numerical vector. Texts with

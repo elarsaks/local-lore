@@ -1,39 +1,17 @@
 # LocalLore
 
-LocalLore is a private memory layer for Claude Code. One persistent local
-daemon incrementally indexes Claude Code session history and serves hybrid
-SQLite FTS5 and local-embedding search to every Claude session over loopback-only
-MCP Streamable HTTP.
-
-This repository is a finished, pinned snapshot and is not actively maintained.
-Review its locked dependencies and security assumptions before adopting it.
-
-## Documentation
-
-Read the [LocalLore documentation](https://elarsaks.github.io/local-lore/) for
-a guided tutorial, operational how-to guides, architecture and concept
-explanations, and generated Python API reference pages.
-
-Preview the documentation locally with:
-
-```bash
-uv sync --locked --group docs
-uv run --group docs mkdocs serve
-```
+LocalLore lets Claude Code search your earlier coding sessions. It runs locally
+and does not send your conversations to a hosted search or embedding service.
 
 ## Requirements
 
 - Claude Code with plugin support
-- Docker Desktop or Docker Engine with Docker Compose v2
-- A Claude projects directory, normally `~/.claude/projects`
-
-The initial image build needs internet access for pinned Python packages and the
-embedding model. The model is bundled in the image and inference never falls
-back to a remote service.
+- Docker with Docker Compose v2
+- existing Claude Code sessions, normally in `~/.claude/projects`
 
 ## Install
 
-Add this repository as a Claude Code marketplace and install LocalLore:
+Run these commands inside Claude Code:
 
 ```text
 /plugin marketplace add elarsaks/local-lore
@@ -42,100 +20,99 @@ Add this repository as a Claude Code marketplace and install LocalLore:
 /locallore:setup
 ```
 
-The default user-scoped installation makes LocalLore available in every
-project. During setup, LocalLore builds its container image, starts the
-persistent daemon, waits for the initial index, and runs its health and security
-checks. Rerun `/locallore:setup` after marketplace updates to activate the
-updated daemon version.
+The first setup builds the container image, downloads the pinned embedding
+model, starts LocalLore, indexes your existing sessions, and checks that the
+service is healthy. It can take 30 minutes or longer depending on your network,
+hardware, Docker build cache, and amount of session history. Keep Docker
+running and allow the setup command to finish. The first setup requires internet
+access; search and embedding inference are local afterward.
 
-## Install from a checkout or update manually
+## Search your sessions
 
-Run the same command for initial installation and every update:
+Ask Claude to remember earlier work:
 
-```bash
-./scripts/install.sh
+```text
+/locallore:remember Why did we choose SQLite for this project?
 ```
 
-Set a non-default session directory when needed:
+You can also ask naturally:
 
-```bash
-CLAUDE_PROJECTS_DIR=/path/to/projects ./scripts/install.sh
+```text
+Search LocalLore for the session where we decided how to handle database migrations.
 ```
 
-LocalLore uses the fixed loopback port `8765`. Marketplace installs use
-`~/.claude/projects` automatically, while the manual installer accepts
-`CLAUDE_PROJECTS_DIR` for checkout-based installs.
+Add details when you know them, such as a project, date range, or file:
 
-The installer validates Docker and the session path, creates mode-`0600` runtime
-configuration, builds the image, starts the fixed `locallore` Compose project,
-waits for initial background indexing, and runs production health/security
-checks. Image builds and model downloads never occur during Claude startup.
+```text
+Search LocalLore for discussions about ranking in the local-lore project
+after 2026-01-01 involving src/locallore/search.py.
+```
 
-Load the checkout with `claude --plugin-dir .`. The plugin connects directly to
-`http://127.0.0.1:8765/mcp`. Docker keeps the installed daemon running across
-normal Claude sessions.
+See [Search session history](https://elarsaks.github.io/local-lore/how-to/search-session-history/)
+for all available filters and context controls.
 
-## Background indexing
+## Check or repair the service
 
-The daemon polls JSONL source metadata, debounces bursts, and queues work through
-one indexing worker. New, appended, completed-tail, truncated, replaced, renamed,
-and deleted sources are handled incrementally. Source deletion cascades through
-messages, file operations, full-text rows, and embeddings.
-
-SQLite WAL readers continue using the last committed index during refresh. A
-failed refresh records an error, keeps search available, and retries with bounded
-backoff. One lazy embedding model and one inference lock are shared by background
-embedding and interactive queries.
-
-## Operations
+From a repository checkout:
 
 ```bash
 ./scripts/status.sh
 ./scripts/logs.sh
 ./scripts/doctor.sh
+```
+
+If the service has stopped or a marketplace update was installed, run
+`/locallore:setup` again. For troubleshooting steps, see the
+[troubleshooting guide](https://elarsaks.github.io/local-lore/how-to/troubleshoot/).
+
+## Install from a checkout
+
+Run the installer for both initial setup and updates:
+
+```bash
+./scripts/install.sh
+```
+
+To use a different Claude session directory:
+
+```bash
+CLAUDE_PROJECTS_DIR=/path/to/projects ./scripts/install.sh
+```
+
+Load the checkout as a development plugin with:
+
+```bash
+claude --plugin-dir .
+```
+
+## Uninstall
+
+```bash
 ./scripts/uninstall.sh
 ```
 
-Indexing runs automatically in the daemon. `uninstall.sh` asks for confirmation
-before deleting the container, derived index volume, and runtime configuration;
-Claude session files are never deleted.
+The script asks before deleting the LocalLore container, derived SQLite index,
+and runtime configuration. It never deletes Claude Code session files.
 
-Normal Claude sessions connect to the persistent HTTP daemon. If its container
-is stopped manually, rerun `/locallore:setup` or `./scripts/install.sh` to start
-it again.
+## Documentation
 
-## Privacy and security
+The [LocalLore documentation](https://elarsaks.github.io/local-lore/) contains
+the complete usage guides, troubleshooting help, architecture, API reference,
+and explanations of RAG, embeddings, keyword and vector search, indexing, and
+MCP.
 
-- The MCP port is published only on `127.0.0.1`.
-- Unexpected HTTP `Host` and browser `Origin` values are rejected to protect the
-  loopback-only endpoint from browser and DNS-rebinding requests.
-- Session history is bind-mounted read-only.
-- The container filesystem is read-only, runs as UID/GID 65532, drops all Linux
-  capabilities, forbids privilege escalation, limits PIDs, and uses bounded
-  `noexec` tmpfs storage.
-- The model is image-bundled and configured for local-files-only inference.
-- There is no telemetry, crash reporting, remote inference fallback, or exposed
-  arbitrary SQL.
-
-The default Compose network is a standard user-defined bridge because Docker Desktop
-does not reliably publish host ports for `internal: true` networks. Consequently,
-the container technically has outbound network access. LocalLore itself does
-not make runtime network requests, but Docker-level egress isolation is not
-claimed. Loopback binding and Host/Origin validation protect the local HTTP
-endpoint. Local processes running as the current user are trusted and can access
-LocalLore without authentication.
-
-The SQLite volume contains plaintext conversation text and embeddings. LocalLore
-does not provide encryption at rest; use host disk encryption and OS access
-controls.
-
-## Validation
+To preview it locally:
 
 ```bash
-./scripts/check.sh
-claude plugin validate .
-./scripts/doctor.sh
+uv sync --locked --group docs
+uv run --group docs mkdocs serve
 ```
 
-`doctor.sh` checks configuration, migrations, FTS5, model inference, one running
-service container, loopback-only publication, and Host/Origin protection.
+Then open <http://127.0.0.1:8000/>.
+
+## Project status
+
+This repository is a finished, pinned snapshot and is not actively maintained.
+Review its locked dependencies and security assumptions before adopting it.
+
+LocalLore is licensed under the [MIT License](LICENSE).

@@ -34,6 +34,10 @@ LocalLore does not generate the final answer and it does not automatically add
 every old message to every prompt. Its job is narrower: make likely-relevant
 history cheaply discoverable, then let Claude request bounded context.
 
+The retrieval step uses two complementary representations. Read
+[Keyword and vector search](search-indexes.md) to learn how inverted indexes and
+embedding vectors turn stored messages into searchable data.
+
 Because both the corpus and embedding model remain local, the design trades
 hosted-service scale for privacy, predictable operation, and a small deployment
 surface.
